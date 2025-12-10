@@ -8,9 +8,10 @@ A lightweight, local ERP system built with React, Node.js, and SQLite. Perfect f
 - ✅ **SQLite Database** - 22 tables for complete ERP functionality (Phase 1)
 - ✅ **Modern UI** - Clean, responsive design based on ERPNext (Phase 1)
 - ✅ **Inventory Management** - Items, warehouses, stock tracking (Phase 2)
-- 🛒 **Purchase Orders** - Coming in Phase 3
-- 💰 **Sales & Invoicing** - Coming in Phase 4
-- 🏭 **Manufacturing** - Coming in Phase 5
+- ✅ **Purchase Orders** - Supplier management, purchase recording (Phase 3)
+- ✅ **Sales & Invoicing** - Customer management, sales recording (Phase 4)
+- ✅ **Manufacturing** - Production tracking, BOM system (Phase 5)
+- ✅ **Searchable Selects** - Enhanced user experience with searchable dropdowns (Recent Enhancement)
 
 ## Tech Stack
 

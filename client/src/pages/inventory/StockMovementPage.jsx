@@ -139,27 +139,29 @@ function StockAdjustmentForm({ onClose, onSuccess }) {
       <FormInput
         label="Item"
         name="item_id"
-        type="select"
+        type="searchable-select"
         value={formData.item_id}
         onChange={handleChange}
-        required
         options={items.map(item => ({
           value: item.id,
           label: `${item.item_code} - ${item.item_name}`
         }))}
+        placeholder="Search items..."
+        required
       />
 
       <FormInput
         label="Warehouse"
         name="warehouse_id"
-        type="select"
+        type="searchable-select"
         value={formData.warehouse_id}
         onChange={handleChange}
-        required
         options={warehouses.map(wh => ({
           value: wh.id,
           label: `${wh.warehouse_code} - ${wh.warehouse_name}`
         }))}
+        placeholder="Search warehouses..."
+        required
       />
 
       <div className="form-row">

@@ -103,6 +103,18 @@ A simple, local Mini ERP system built for seed oil manufacturing businesses with
   - Creates positive stock movement for produced items
   - Transaction-based operation (all-or-nothing)
 
+### ✅ Recent Enhancement: Searchable Select Components
+- **Enhanced User Experience**
+  - Implemented searchable select components for better usability
+  - Updated Production form with searchable dropdowns for items and warehouses
+  - Updated Sales form with searchable dropdowns for items and warehouses
+  - Updated Purchases form with searchable dropdowns for items and warehouses
+  - Updated Stock Movement form with searchable dropdowns for items and warehouses
+  - Updated Items form with searchable dropdown for unit of measure
+  - Users can now type to filter options in select fields
+  - Improved accessibility and faster selection of items
+  - Consistent UI/UX across the application
+
 ---
 
 ## Database Schema

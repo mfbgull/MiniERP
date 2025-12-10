@@ -213,7 +213,7 @@ function ItemForm({ item, onClose, onSuccess }) {
         <FormInput
           label="Unit of Measure"
           name="unit_of_measure"
-          type="select"
+          type="searchable-select"
           value={formData.unit_of_measure}
           onChange={handleChange}
           required
@@ -225,6 +225,7 @@ function ItemForm({ item, onClose, onSuccess }) {
             { value: 'Pack', label: 'Pack' },
             { value: 'Bottle', label: 'Bottle' }
           ]}
+          placeholder="Search UOM..."
         />
       </div>
 

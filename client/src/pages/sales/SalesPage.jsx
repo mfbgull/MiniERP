@@ -185,34 +185,30 @@ function SaleForm({ onClose, onSuccess }) {
         <FormInput
           label="Item *"
           name="item_id"
-          type="select"
+          type="searchable-select"
           value={formData.item_id}
           onChange={handleChange}
+          options={items.map(item => ({
+            value: item.id,
+            label: `${item.item_code} - ${item.item_name} (Stock: ${item.current_stock})`
+          }))}
+          placeholder="Search items..."
           required
-        >
-          <option value="">Select Item</option>
-          {items.map(item => (
-            <option key={item.id} value={item.id}>
-              {item.item_code} - {item.item_name} (Stock: {item.current_stock})
-            </option>
-          ))}
-        </FormInput>
+        />
 
         <FormInput
           label="Warehouse *"
           name="warehouse_id"
-          type="select"
+          type="searchable-select"
           value={formData.warehouse_id}
           onChange={handleChange}
+          options={warehouses.map(wh => ({
+            value: wh.id,
+            label: `${wh.warehouse_code} - ${wh.warehouse_name}`
+          }))}
+          placeholder="Search warehouses..."
           required
-        >
-          <option value="">Select Warehouse</option>
-          {warehouses.map(wh => (
-            <option key={wh.id} value={wh.id}>
-              {wh.warehouse_code} - {wh.warehouse_name}
-            </option>
-          ))}
-        </FormInput>
+        />
       </div>
 
       {selectedItem && (
