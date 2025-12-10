@@ -255,18 +255,3 @@ cp database/erp.db database/backups/erp_backup_$(date +%Y%m%d).db
 ## License
 
 MIT
-
-## Support
-
-For issues or questions:
-1. Check the implementation plan in `.claude/plans/`
-2. Review the database schema in `server/src/migrations/init.sql`
-3. Check the API endpoints in `server/src/routes/`
-
----
-
-**Phase 1 Complete! 🎉**
-
-You now have a working authentication system with SQLite database. The foundation is ready for building out the full ERP modules.
-
-**Next:** Implement Phase 2 (Inventory Management)
