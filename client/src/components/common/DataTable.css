@@ -1,0 +1,102 @@
+.data-table-container {
+  overflow-x: auto;
+  background: var(--neutral-100);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.data-table thead {
+  background: var(--neutral-50);
+  border-bottom: 2px solid #DEE2E6;
+}
+
+.data-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--neutral-700);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.data-table th.sortable {
+  cursor: pointer;
+}
+
+.data-table th.sortable:hover {
+  background: #E9ECEF;
+}
+
+.sort-indicator {
+  color: var(--primary-500);
+  font-weight: 700;
+}
+
+.data-table tbody tr {
+  border-bottom: 1px solid #DEE2E6;
+  transition: background-color 0.15s;
+}
+
+.data-table tbody tr:hover {
+  background: var(--neutral-50);
+}
+
+.data-table tbody tr.clickable {
+  cursor: pointer;
+}
+
+.data-table td {
+  padding: 12px 16px;
+  color: var(--neutral-700);
+}
+
+.empty-state {
+  text-align: center;
+  padding: var(--space-xxl) !important;
+  color: var(--neutral-400);
+  font-style: italic;
+}
+
+/* Status Tags in Table */
+.status-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.status-draft {
+  background: #E9ECEF;
+  color: var(--neutral-700);
+}
+
+.status-submitted,
+.status-confirmed {
+  background: #D1ECF1;
+  color: #0C5460;
+}
+
+.status-completed,
+.status-paid {
+  background: #D4EDDA;
+  color: var(--success);
+}
+
+.status-cancelled,
+.status-rejected {
+  background: #F8D7DA;
+  color: var(--error);
+}
+
+.status-overdue {
+  background: #FFF3CD;
+  color: #856404;
+}

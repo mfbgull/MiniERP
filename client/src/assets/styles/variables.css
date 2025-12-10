@@ -1,0 +1,35 @@
+/* CSS Variables - Extracted from ERPNext Demo */
+:root {
+  /* Primary Colors */
+  --primary-100: #EBF2FF;
+  --primary-500: #367BF5;
+  --primary-700: #285EBC;
+
+  /* Neutral Colors */
+  --neutral-50: #F8F9FA;
+  --neutral-100: #FFFFFF;
+  --neutral-400: #6C757D;
+  --neutral-700: #495057;
+  --neutral-900: #212529;
+
+  /* Semantic Colors */
+  --success: #198754;
+  --warning: #FFC107;
+  --error: #DC3545;
+
+  /* Spacing */
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-xxl: 48px;
+
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+}
