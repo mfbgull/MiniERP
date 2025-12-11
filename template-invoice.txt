@@ -1,0 +1,558 @@
+import React, { useState } from 'react';
+import { Printer, Download, Send, Plus, Trash2, Calendar, User, Building, Mail, Phone, Hash, Edit2 } from 'lucide-react';
+
+export default function ModernInvoice() {
+  const [invoice, setInvoice] = useState({
+    invoiceNumber: 'INV-2025-001',
+    date: '2025-12-10',
+    dueDate: '2025-12-24',
+    status: 'Draft',
+    discountScope: 'invoice', // 'invoice' or 'item'
+    discount: {
+      type: 'percentage', // 'percentage' or 'flat'
+      value: 0
+    },
+    customer: {
+      name: 'Acme Corporation',
+      email: 'contact@acme.com',
+      phone: '+1 234 567 8900',
+      address: '123 Business St, NY 10001',
+    },
+    company: {
+      name: 'Your Company Name',
+      email: 'hello@yourcompany.com',
+      phone: '+1 987 654 3210',
+      address: '456 Enterprise Ave, BC 12345',
+      taxId: 'TAX-123456789',
+    },
+    items: [
+      { id: 1, description: 'Product Design Services', quantity: 1, rate: 5000, tax: 10, discount: { type: 'percentage', value: 0 } },
+      { id: 2, description: 'Development - Frontend', quantity: 40, rate: 120, tax: 10, discount: { type: 'percentage', value: 0 } },
+      { id: 3, description: 'Development - Backend', quantity: 30, rate: 150, tax: 10, discount: { type: 'percentage', value: 0 } },
+    ],
+    notes: 'Thank you for your business. Payment is due within 14 days.',
+    terms: 'Net 14 days. Late payments subject to 1.5% monthly interest.',
+  });
+
+  const [editingCell, setEditingCell] = useState(null);
+
+  const calculateItemDiscount = (item) => {
+    const subtotal = item.quantity * item.rate;
+    if (item.discount.type === 'percentage') {
+      return (subtotal * item.discount.value) / 100;
+    } else {
+      return item.discount.value;
+    }
+  };
+
+  const calculateItemTotal = (item) => {
+    const subtotal = item.quantity * item.rate;
+    const discount = invoice.discountScope === 'item' ? calculateItemDiscount(item) : 0;
+    const afterDiscount = subtotal - discount;
+    const taxAmount = (afterDiscount * item.tax) / 100;
+    return afterDiscount + taxAmount;
+  };
+
+  const calculateSubtotal = () => {
+    return invoice.items.reduce((sum, item) => sum + (item.quantity * item.rate), 0);
+  };
+
+  const calculateTax = () => {
+    return invoice.items.reduce((sum, item) => {
+      const subtotal = item.quantity * item.rate;
+      const discount = invoice.discountScope === 'item' ? calculateItemDiscount(item) : 0;
+      const afterDiscount = subtotal - discount;
+      return sum + (afterDiscount * item.tax / 100);
+    }, 0);
+  };
+
+  const calculateDiscount = () => {
+    if (invoice.discountScope === 'item') {
+      // Sum all item discounts
+      return invoice.items.reduce((sum, item) => sum + calculateItemDiscount(item), 0);
+    } else {
+      // Invoice-level discount
+      const subtotal = calculateSubtotal();
+      if (invoice.discount.type === 'percentage') {
+        return (subtotal * invoice.discount.value) / 100;
+      } else {
+        return invoice.discount.value;
+      }
+    }
+  };
+
+  const calculateTotal = () => {
+    return calculateSubtotal() + calculateTax() - calculateDiscount();
+  };
+
+  const getStatusColor = (status) => {
+    const colors = {
+      'Draft': 'bg-gray-100 text-gray-700',
+      'Sent': 'bg-blue-100 text-blue-700',
+      'Paid': 'bg-green-100 text-green-700',
+      'Overdue': 'bg-red-100 text-red-700',
+      'Cancelled': 'bg-gray-100 text-gray-500',
+    };
+    return colors[status] || 'bg-gray-100 text-gray-700';
+  };
+
+  const addNewItem = () => {
+    const newItemId = Date.now();
+    const newItem = {
+      id: newItemId,
+      description: '',
+      quantity: 1,
+      rate: 0,
+      tax: 10,
+      discount: { type: 'percentage', value: 0 }
+    };
+    setInvoice({
+      ...invoice,
+      items: [...invoice.items, newItem]
+    });
+    return newItemId;
+  };
+
+  const removeItem = (id) => {
+    setInvoice({
+      ...invoice,
+      items: invoice.items.filter(item => item.id !== id)
+    });
+  };
+
+  const updateItem = (id, field, value) => {
+    setInvoice({
+      ...invoice,
+      items: invoice.items.map(item => {
+        if (item.id === id) {
+          if (field === 'discountType') {
+            return { ...item, discount: { ...item.discount, type: value } };
+          } else if (field === 'discountValue') {
+            return { ...item, discount: { ...item.discount, value: Number(value) || 0 } };
+          } else {
+            return { ...item, [field]: field === 'description' ? value : Number(value) || 0 };
+          }
+        }
+        return item;
+      })
+    });
+  };
+
+  const getNextField = (currentField) => {
+    if (invoice.discountScope === 'item') {
+      const fieldOrder = ['description', 'quantity', 'rate', 'discountValue', 'tax'];
+      const currentIndex = fieldOrder.indexOf(currentField);
+      return fieldOrder[currentIndex + 1];
+    } else {
+      const fieldOrder = ['description', 'quantity', 'rate', 'tax'];
+      const currentIndex = fieldOrder.indexOf(currentField);
+      return fieldOrder[currentIndex + 1];
+    }
+  };
+
+  const isLastField = (field) => {
+    return field === 'tax';
+  };
+
+  const EditableCell = ({ value, itemId, field, type = 'text', isLastItem }) => {
+    const isEditing = editingCell === `${itemId}-${field}`;
+    const [tempValue, setTempValue] = useState(value);
+
+    const handleSave = () => {
+      updateItem(itemId, field, tempValue);
+      setEditingCell(null);
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleSave();
+        
+        // If on tax field and last item, add new item
+        if (isLastField(field) && isLastItem) {
+          const newItemId = addNewItem();
+          // Focus on description of new item after a brief delay
+          setTimeout(() => {
+            setEditingCell(`${newItemId}-description`);
+          }, 50);
+        }
+      } else if (e.key === 'Tab') {
+        e.preventDefault();
+        handleSave();
+        
+        const nextField = getNextField(field);
+        if (nextField) {
+          setEditingCell(`${itemId}-${nextField}`);
+        } else if (isLastItem) {
+          // If no next field and last item, add new row
+          const newItemId = addNewItem();
+          setTimeout(() => {
+            setEditingCell(`${newItemId}-description`);
+          }, 50);
+        }
+      } else if (e.key === 'Escape') {
+        setTempValue(value);
+        setEditingCell(null);
+      }
+    };
+
+    if (isEditing) {
+      return (
+        <input
+          type={type}
+          value={tempValue}
+          onChange={(e) => setTempValue(e.target.value)}
+          onBlur={handleSave}
+          onKeyDown={handleKeyDown}
+          onFocus={(e) => e.target.select()}
+          autoFocus
+          className="w-full px-2 py-1 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      );
+    }
+
+    return (
+      <div
+        onClick={() => {
+          setTempValue(value);
+          setEditingCell(`${itemId}-${field}`);
+        }}
+        className="cursor-pointer hover:bg-gray-50 px-2 py-1 rounded group relative"
+      >
+        {value}
+        <Edit2 className="w-3 h-3 absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-50 text-gray-400" />
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Action Bar */}
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-6 flex flex-wrap gap-3 items-center justify-between">
+          <div className="flex gap-2">
+            <select
+              value={invoice.status}
+              onChange={(e) => setInvoice({ ...invoice, status: e.target.value })}
+              className={`px-4 py-2 rounded-lg font-medium ${getStatusColor(invoice.status)}`}
+            >
+              <option value="Draft">Draft</option>
+              <option value="Sent">Sent</option>
+              <option value="Paid">Paid</option>
+              <option value="Overdue">Overdue</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </div>
+          
+          <div className="flex gap-2 flex-wrap">
+            <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+              <Send className="w-4 h-4" />
+              Send
+            </button>
+            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
+              <Download className="w-4 h-4" />
+              PDF
+            </button>
+            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
+              <Printer className="w-4 h-4" />
+              Print
+            </button>
+          </div>
+        </div>
+
+        {/* Invoice Document */}
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          {/* Compact Header - 25% sections */}
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white">
+            <div className="grid grid-cols-4 gap-4">
+              {/* Invoice Title & Number - 25% */}
+              <div className="col-span-1">
+                <h1 className="text-2xl font-bold mb-1">INVOICE</h1>
+                <div className="flex items-center gap-1 text-blue-100 text-sm">
+                  <Hash className="w-3 h-3" />
+                  <span>{invoice.invoiceNumber}</span>
+                </div>
+              </div>
+
+              {/* From - 25% */}
+              <div className="col-span-1">
+                <div className="text-xs font-semibold text-blue-200 mb-1">FROM</div>
+                <div className="text-sm font-bold mb-0.5">{invoice.company.name}</div>
+                <div className="text-xs text-blue-100 space-y-0.5">
+                  <div>{invoice.company.email}</div>
+                  <div>{invoice.company.phone}</div>
+                </div>
+              </div>
+
+              {/* Bill To - 25% */}
+              <div className="col-span-1">
+                <div className="text-xs font-semibold text-blue-200 mb-1">BILL TO</div>
+                <div className="text-sm font-bold mb-0.5">{invoice.customer.name}</div>
+                <div className="text-xs text-blue-100 space-y-0.5">
+                  <div>{invoice.customer.email}</div>
+                  <div>{invoice.customer.phone}</div>
+                </div>
+              </div>
+
+              {/* Invoice Details - 25% */}
+              <div className="col-span-1 text-right">
+                <div className="text-2xl font-bold mb-1">${calculateTotal().toFixed(2)}</div>
+                <div className="text-xs text-blue-100 space-y-1">
+                  <div>
+                    <span className="text-blue-200">Date: </span>
+                    {new Date(invoice.date).toLocaleDateString()}
+                  </div>
+                  <div>
+                    <span className="text-blue-200">Due: </span>
+                    {new Date(invoice.dueDate).toLocaleDateString()}
+                  </div>
+                  <div className="text-blue-200">Net 14 Days</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Items Table */}
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-4">
+                <h3 className="text-lg font-semibold text-gray-900">Line Items</h3>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-gray-600">Discount:</span>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="discountScope"
+                      value="invoice"
+                      checked={invoice.discountScope === 'invoice'}
+                      onChange={(e) => setInvoice({ ...invoice, discountScope: e.target.value })}
+                      className="text-blue-600 focus:ring-blue-500"
+                    />
+                    <span>Invoice Level</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="discountScope"
+                      value="item"
+                      checked={invoice.discountScope === 'item'}
+                      onChange={(e) => setInvoice({ ...invoice, discountScope: e.target.value })}
+                      className="text-blue-600 focus:ring-blue-500"
+                    />
+                    <span>Per Item</span>
+                  </label>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  const newItemId = addNewItem();
+                  setTimeout(() => {
+                    setEditingCell(`${newItemId}-description`);
+                  }, 50);
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm"
+              >
+                <Plus className="w-4 h-4" />
+                Add Item
+              </button>
+            </div>
+
+            <div className="overflow-x-auto border border-gray-200 rounded-lg">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Description
+                    </th>
+                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider w-24">
+                      Quantity
+                    </th>
+                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider w-28">
+                      Rate
+                    </th>
+                    {invoice.discountScope === 'item' && (
+                      <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider w-32">
+                        Discount
+                      </th>
+                    )}
+                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider w-24">
+                      Tax %
+                    </th>
+                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider w-32">
+                      Amount
+                    </th>
+                    <th className="w-16"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {invoice.items.map((item, index) => (
+                    <tr key={item.id} className="hover:bg-gray-50 transition">
+                      <td className="py-3 px-4 text-gray-900">
+                        <EditableCell
+                          value={item.description}
+                          itemId={item.id}
+                          field="description"
+                          type="text"
+                          isLastItem={index === invoice.items.length - 1}
+                        />
+                      </td>
+                      <td className="py-3 px-4 text-right text-gray-700">
+                        <EditableCell
+                          value={item.quantity}
+                          itemId={item.id}
+                          field="quantity"
+                          type="number"
+                          isLastItem={index === invoice.items.length - 1}
+                        />
+                      </td>
+                      <td className="py-3 px-4 text-right text-gray-700">
+                        <EditableCell
+                          value={item.rate.toFixed(2)}
+                          itemId={item.id}
+                          field="rate"
+                          type="number"
+                          isLastItem={index === invoice.items.length - 1}
+                        />
+                      </td>
+                      {invoice.discountScope === 'item' && (
+                        <td className="py-3 px-4 text-right text-gray-700">
+                          <div className="flex items-center justify-end gap-1">
+                            <select
+                              value={item.discount.type}
+                              onChange={(e) => updateItem(item.id, 'discountType', e.target.value)}
+                              className="text-xs px-1 py-1 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                              <option value="percentage">%</option>
+                              <option value="flat">$</option>
+                            </select>
+                            <EditableCell
+                              value={item.discount.value}
+                              itemId={item.id}
+                              field="discountValue"
+                              type="number"
+                              isLastItem={index === invoice.items.length - 1}
+                            />
+                          </div>
+                        </td>
+                      )}
+                      <td className="py-3 px-4 text-right text-gray-700">
+                        <EditableCell
+                          value={item.tax}
+                          itemId={item.id}
+                          field="tax"
+                          type="number"
+                          isLastItem={index === invoice.items.length - 1}
+                        />
+                      </td>
+                      <td className="py-3 px-4 text-right font-semibold text-blue-600">
+                        ${calculateItemTotal(item).toFixed(2)}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <button
+                          onClick={() => removeItem(item.id)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded transition"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Totals */}
+            <div className="mt-6 flex justify-end">
+              <div className="w-96 bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div className="flex justify-between py-2 text-sm text-gray-600">
+                  <span>Subtotal:</span>
+                  <span className="font-medium">${calculateSubtotal().toFixed(2)}</span>
+                </div>
+                
+                {/* Discount Section */}
+                {invoice.discountScope === 'invoice' ? (
+                  <div className="flex justify-between items-center py-2 text-sm text-gray-600">
+                    <div className="flex items-center gap-2">
+                      <span>Discount:</span>
+                      <div className="flex items-center gap-1">
+                        <select
+                          value={invoice.discount.type}
+                          onChange={(e) => setInvoice({
+                            ...invoice,
+                            discount: { ...invoice.discount, type: e.target.value }
+                          })}
+                          className="text-xs px-2 py-1 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="percentage">%</option>
+                          <option value="flat">$</option>
+                        </select>
+                        <input
+                          type="number"
+                          value={invoice.discount.value}
+                          onChange={(e) => setInvoice({
+                            ...invoice,
+                            discount: { ...invoice.discount, value: Number(e.target.value) || 0 }
+                          })}
+                          onFocus={(e) => e.target.select()}
+                          className="w-16 text-xs px-2 py-1 border border-gray-300 rounded text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="0"
+                        />
+                      </div>
+                    </div>
+                    <span className="font-medium text-red-600">
+                      -${calculateDiscount().toFixed(2)}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex justify-between py-2 text-sm text-gray-600">
+                    <span>Discount (Per Item):</span>
+                    <span className="font-medium text-red-600">
+                      -${calculateDiscount().toFixed(2)}
+                    </span>
+                  </div>
+                )}
+                
+                <div className="flex justify-between py-2 text-sm text-gray-600 border-t border-gray-200 mt-2">
+                  <span>Tax:</span>
+                  <span className="font-medium">${calculateTax().toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between py-3 text-lg font-bold text-gray-900 border-t border-gray-300">
+                  <span>Total:</span>
+                  <span className="text-blue-600">${calculateTotal().toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Notes & Terms */}
+          <div className="px-6 pb-6 grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-2">NOTES</label>
+              <textarea
+                value={invoice.notes}
+                onChange={(e) => setInvoice({ ...invoice, notes: e.target.value })}
+                rows="3"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-2">TERMS & CONDITIONS</label>
+              <textarea
+                value={invoice.terms}
+                onChange={(e) => setInvoice({ ...invoice, terms: e.target.value })}
+                rows="3"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="p-4 bg-gray-100 text-center text-sm text-gray-600 border-t border-gray-200">
+            <p className="font-medium">Thank you for your business!</p>
+            <p className="mt-1 text-xs">Questions? Contact {invoice.company.email}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

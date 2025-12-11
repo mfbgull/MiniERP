@@ -3,7 +3,9 @@
     "allow": [
       "Bash(npm run build:*)",
       "Bash(if exist node_modules.vite rmdir /s /q node_modules.vite)",
-      "Bash(powershell -Command \"if (Test-Path ''node_modules\\.vite'') { Remove-Item -Recurse -Force ''node_modules\\.vite'' }\")"
+      "Bash(powershell -Command \"if (Test-Path ''node_modules\\.vite'') { Remove-Item -Recurse -Force ''node_modules\\.vite'' }\")",
+      "Bash(npm install:*)",
+      "Bash(npm start)"
     ]
   }
 }

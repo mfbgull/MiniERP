@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { SettingsProvider } from './context/SettingsContext';
 
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -13,6 +14,8 @@ import PurchasesPage from './pages/purchases/PurchasesPage';
 import BOMPage from './pages/bom/BOMPage';
 import ProductionPage from './pages/production/ProductionPage';
 import SalesPage from './pages/sales/SalesPage';
+import SalesInvoicePage from './pages/sales/SalesInvoicePage';
+import SettingsPage from './pages/SettingsPage';
 import Sidebar from './components/layout/Sidebar';
 
 import './assets/styles/variables.css';
@@ -47,24 +50,29 @@ function ProtectedRoute({ children }) {
 // App Layout with Sidebar
 function AppLayout() {
   return (
-    <div className="app-container">
-      <Sidebar />
-      <div className="main-content">
-        <div className="content">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/inventory/items" element={<ItemsPage />} />
-            <Route path="/inventory/warehouses" element={<WarehousesPage />} />
-            <Route path="/inventory/stock-movements" element={<StockMovementPage />} />
-            <Route path="/inventory/stock-by-warehouse" element={<StockByWarehousePage />} />
-            <Route path="/purchases" element={<PurchasesPage />} />
-            <Route path="/bom" element={<BOMPage />} />
-            <Route path="/production" element={<ProductionPage />} />
-            <Route path="/sales" element={<SalesPage />} />
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>        </div>
+    <SettingsProvider>
+      <div className="app-container">
+        <Sidebar />
+        <div className="main-content">
+          <div className="content">
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/inventory/items" element={<ItemsPage />} />
+              <Route path="/inventory/warehouses" element={<WarehousesPage />} />
+              <Route path="/inventory/stock-movements" element={<StockMovementPage />} />
+              <Route path="/inventory/stock-by-warehouse" element={<StockByWarehousePage />} />
+              <Route path="/purchases" element={<PurchasesPage />} />
+              <Route path="/bom" element={<BOMPage />} />
+              <Route path="/production" element={<ProductionPage />} />
+              <Route path="/sales" element={<SalesPage />} />
+              <Route path="/sales/invoice" element={<SalesInvoicePage />} />
+              <Route path="/sales/invoice/:invoiceId" element={<SalesInvoicePage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="*" element={<Navigate to="/" />} />
+            </Routes>        </div>
+        </div>
       </div>
-    </div>
+    </SettingsProvider>
   );
 }
 

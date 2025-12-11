@@ -1,8 +1,12 @@
 const app = require('./src/app');
 const db = require('./src/config/database');
+const { initializeDefaults } = require('./src/controllers/settingsController');
 
 const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '0.0.0.0'; // Allow network access
+
+// Initialize default settings
+initializeDefaults();
 
 // Start server
 const server = app.listen(PORT, HOST, () => {

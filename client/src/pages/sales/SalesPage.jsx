@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSettings } from '../../context/SettingsContext';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { AgGridReact } from 'ag-grid-react';
@@ -12,6 +14,8 @@ import './SalesPage.css';
 export default function SalesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const queryClient = useQueryClient();
+  const { formatCurrency } = useSettings();
+  const navigate = useNavigate();
 
   const { data: sales = [], isLoading } = useQuery({
     queryKey: ['sales'],
@@ -58,7 +62,7 @@ export default function SalesPage() {
       sortable: true,
       filter: 'agNumberColumnFilter',
       flex: 1,
-      valueFormatter: params => `$${parseFloat(params.value).toFixed(2)}`
+      valueFormatter: params => formatCurrency(parseFloat(params.value))
     },
     {
       headerName: 'Total',
@@ -67,7 +71,7 @@ export default function SalesPage() {
       filter: 'agNumberColumnFilter',
       flex: 1,
       cellRenderer: (params) => (
-        <strong className="revenue">${parseFloat(params.value).toFixed(2)}</strong>
+        <strong className="revenue">{formatCurrency(parseFloat(params.value))}</strong>
       )
     },
     {
@@ -97,9 +101,14 @@ export default function SalesPage() {
           <h1>Sales</h1>
           <p className="page-subtitle">Record direct sales and track revenue</p>
         </div>
-        <Button variant="primary" onClick={handleNew}>
-          + Record Sale
-        </Button>
+        <div className="header-actions">
+          <Button variant="secondary" onClick={() => navigate('/sales/invoice')}>
+            + New Invoice
+          </Button>
+          <Button variant="primary" onClick={handleNew}>
+            + Direct Sale
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -116,7 +125,7 @@ export default function SalesPage() {
             <div className="summary-card revenue-card">
               <div className="summary-label">Total Revenue</div>
               <div className="summary-value revenue">
-                ${sales.reduce((sum, s) => sum + parseFloat(s.total_amount), 0).toFixed(2)}
+                {formatCurrency(sales.reduce((sum, s) => sum + parseFloat(s.total_amount), 0))}
               </div>
             </div>
           </div>
@@ -157,6 +166,7 @@ export default function SalesPage() {
 }
 
 function SaleForm({ onClose, onSuccess }) {
+  const { formatCurrency } = useSettings();
   const [formData, setFormData] = useState({
     item_id: '',
     warehouse_id: '',
@@ -292,7 +302,7 @@ function SaleForm({ onClose, onSuccess }) {
       {formData.quantity && formData.unit_price && (
         <div className="total-amount-display">
           <span>Total Amount:</span>
-          <strong className="revenue">${totalAmount}</strong>
+          <strong className="revenue">{formatCurrency(parseFloat(totalAmount))}</strong>
         </div>
       )}
 

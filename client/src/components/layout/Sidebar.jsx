@@ -20,7 +20,8 @@ export default function Sidebar() {
     { path: '/purchases', label: 'Purchases', icon: '🛒' },
     { path: '/bom', label: 'Bill of Materials', icon: '📋' },
     { path: '/production', label: 'Production', icon: '🏭' },
-    { path: '/sales', label: 'Sales', icon: '💰' }
+    { path: '/sales', label: 'Sales', icon: '💰' },
+    { path: '/settings', label: 'Settings', icon: '⚙️' }
   ];
 
   return (

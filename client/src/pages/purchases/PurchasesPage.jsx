@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSettings } from '../../context/SettingsContext';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { AgGridReact } from 'ag-grid-react';
@@ -12,6 +13,7 @@ import './PurchasesPage.css';
 export default function PurchasesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const queryClient = useQueryClient();
+  const { formatCurrency } = useSettings();
 
   const { data: purchases = [], isLoading } = useQuery({
     queryKey: ['purchases'],
@@ -58,7 +60,7 @@ export default function PurchasesPage() {
       sortable: true,
       filter: 'agNumberColumnFilter',
       flex: 1,
-      valueFormatter: params => `$${parseFloat(params.value).toFixed(2)}`
+      valueFormatter: params => formatCurrency(parseFloat(params.value))
     },
     {
       headerName: 'Total',
@@ -67,7 +69,7 @@ export default function PurchasesPage() {
       filter: 'agNumberColumnFilter',
       flex: 1,
       cellRenderer: (params) => (
-        <strong>${parseFloat(params.value).toFixed(2)}</strong>
+        <strong>{formatCurrency(parseFloat(params.value))}</strong>
       )
     },
     {
@@ -116,7 +118,7 @@ export default function PurchasesPage() {
             <div className="summary-card">
               <div className="summary-label">Total Value</div>
               <div className="summary-value">
-                ${purchases.reduce((sum, p) => sum + parseFloat(p.total_cost), 0).toFixed(2)}
+                {formatCurrency(purchases.reduce((sum, p) => sum + parseFloat(p.total_cost), 0))}
               </div>
             </div>
           </div>
@@ -157,6 +159,7 @@ export default function PurchasesPage() {
 }
 
 function PurchaseForm({ onClose, onSuccess }) {
+  const { formatCurrency } = useSettings();
   const [formData, setFormData] = useState({
     item_id: '',
     warehouse_id: '',
@@ -282,7 +285,7 @@ function PurchaseForm({ onClose, onSuccess }) {
       {formData.quantity && formData.unit_cost && (
         <div className="total-cost-display">
           <span>Total Cost:</span>
-          <strong>${totalCost}</strong>
+          <strong>{formatCurrency(parseFloat(totalCost))}</strong>
         </div>
       )}
 

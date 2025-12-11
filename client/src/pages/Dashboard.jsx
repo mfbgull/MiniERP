@@ -1,4 +1,5 @@
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
@@ -180,6 +181,8 @@ export default function Dashboard() {
     }]
   };
 
+  const { formatCurrency } = useSettings();
+
   return (
     <div className="dashboard">
       {/* Header */}
@@ -209,7 +212,7 @@ export default function Dashboard() {
           </div>
           <div className="kpi-content">
             <div className="kpi-label">Stock Value</div>
-            <div className="kpi-value">${totalStockValue.toFixed(2)}</div>
+            <div className="kpi-value">{formatCurrency(totalStockValue)}</div>
             <div className="kpi-subtitle">Current inventory worth</div>
           </div>
         </div>
@@ -220,7 +223,7 @@ export default function Dashboard() {
           </div>
           <div className="kpi-content">
             <div className="kpi-label">Sales Revenue</div>
-            <div className="kpi-value">${totalSalesRevenue.toFixed(2)}</div>
+            <div className="kpi-value">{formatCurrency(totalSalesRevenue)}</div>
             <div className="kpi-subtitle">{sales.length} total sales</div>
           </div>
         </div>

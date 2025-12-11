@@ -56,6 +56,9 @@ function initializeDatabase() {
   } else {
     console.log('✅ Database already initialized.');
   }
+
+  // Run invoice discount/tax migration if needed
+  runInvoiceMigration();
 }
 
 function createDefaultUser() {
@@ -91,6 +94,31 @@ function createDefaultWarehouse() {
     stmt.run('WH-001', 'Main Warehouse', 'Default Location', 1);
 
     console.log('✅ Default warehouse created (WH-001)');
+  }
+}
+
+function runInvoiceMigration() {
+  try {
+    // Check if discount_scope column exists in invoices table
+    const columnCheck = db.prepare(`
+      SELECT COUNT(*) as count FROM pragma_table_info('invoices')
+      WHERE name='discount_scope'
+    `).get();
+
+    if (columnCheck.count === 0) {
+      console.log('Running invoice discount/tax migration...');
+
+      const migrationSQL = fs.readFileSync(
+        path.join(__dirname, '../migrations/add-invoice-discount-tax-fields.sql'),
+        'utf8'
+      );
+
+      db.exec(migrationSQL);
+
+      console.log('✅ Invoice discount/tax migration completed!');
+    }
+  } catch (error) {
+    console.error('Invoice migration error:', error.message);
   }
 }
 
