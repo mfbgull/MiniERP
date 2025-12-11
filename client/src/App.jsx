@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import ItemsPage from './pages/inventory/ItemsPage';
 import WarehousesPage from './pages/inventory/WarehousesPage';
 import StockMovementPage from './pages/inventory/StockMovementPage';
+import StockByWarehousePage from './pages/inventory/StockByWarehousePage';
 import PurchasesPage from './pages/purchases/PurchasesPage';
 import BOMPage from './pages/bom/BOMPage';
 import ProductionPage from './pages/production/ProductionPage';
@@ -55,6 +56,7 @@ function AppLayout() {
             <Route path="/inventory/items" element={<ItemsPage />} />
             <Route path="/inventory/warehouses" element={<WarehousesPage />} />
             <Route path="/inventory/stock-movements" element={<StockMovementPage />} />
+            <Route path="/inventory/stock-by-warehouse" element={<StockByWarehousePage />} />
             <Route path="/purchases" element={<PurchasesPage />} />
             <Route path="/bom" element={<BOMPage />} />
             <Route path="/production" element={<ProductionPage />} />

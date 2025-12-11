@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import { AgGridReact } from 'ag-grid-react';
 import api from '../../utils/api';
-import DataTable from '../../components/common/DataTable';
 import Button from '../../components/common/Button';
 import Modal from '../../components/common/Modal';
 import FormInput from '../../components/common/FormInput';
@@ -20,10 +20,27 @@ export default function WarehousesPage() {
     }
   });
 
-  const columns = [
-    { key: 'warehouse_code', label: 'Code', sortable: true },
-    { key: 'warehouse_name', label: 'Name', sortable: true },
-    { key: 'location', label: 'Location', sortable: false }
+  const columnDefs = [
+    {
+      headerName: 'Code',
+      field: 'warehouse_code',
+      sortable: true,
+      filter: true,
+      flex: 1
+    },
+    {
+      headerName: 'Name',
+      field: 'warehouse_name',
+      sortable: true,
+      filter: true,
+      flex: 2
+    },
+    {
+      headerName: 'Location',
+      field: 'location',
+      filter: true,
+      flex: 2
+    }
   ];
 
   const handleRowClick = (warehouse) => {
@@ -53,7 +70,22 @@ export default function WarehousesPage() {
           <div className="spinner"></div>
         </div>
       ) : (
-        <DataTable columns={columns} data={warehouses} onRowClick={handleRowClick} />
+        <div className="ag-theme-quartz" style={{ height: 600, width: '100%' }}>
+          <AgGridReact
+            rowData={warehouses}
+            columnDefs={columnDefs}
+            defaultColDef={{
+              resizable: true,
+              sortable: false,
+              filter: false
+            }}
+            pagination={true}
+            paginationPageSize={20}
+            paginationPageSizeSelector={[10, 20, 50, 100]}
+            onRowClicked={(params) => handleRowClick(params.data)}
+            rowSelection={{ mode: 'singleRow' }}
+          />
+        </div>
       )}
 
       <Modal

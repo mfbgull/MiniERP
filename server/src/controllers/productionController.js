@@ -2,7 +2,15 @@ const Production = require('../models/Production');
 
 function recordProduction(req, res) {
   try {
-    const { output_item_id, output_quantity, warehouse_id, production_date, input_items, remarks } = req.body;
+    const {
+      output_item_id,
+      output_quantity,
+      warehouse_id,
+      raw_materials_warehouse_id, // New field
+      production_date,
+      input_items,
+      remarks
+    } = req.body;
 
     if (!output_item_id || !output_quantity || !warehouse_id || !production_date || !input_items || !input_items.length) {
       return res.status(400).json({ error: 'Output item, quantity, warehouse, date, and input items are required' });
@@ -12,7 +20,13 @@ function recordProduction(req, res) {
       return res.status(400).json({ error: 'Output quantity must be positive' });
     }
 
-    const production = Production.recordProduction(req.body, req.user.id);
+    // Add raw_materials_warehouse_id to the data
+    const productionData = {
+      ...req.body,
+      raw_materials_warehouse_id: raw_materials_warehouse_id || warehouse_id // Use finished goods warehouse as default
+    };
+
+    const production = Production.recordProduction(productionData, req.user.id);
     res.status(201).json(production);
   } catch (error) {
     console.error('Record production error:', error);

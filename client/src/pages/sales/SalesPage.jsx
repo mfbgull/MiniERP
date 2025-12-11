@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import { AgGridReact } from 'ag-grid-react';
 import api from '../../utils/api';
-import DataTable from '../../components/common/DataTable';
 import Button from '../../components/common/Button';
 import Modal from '../../components/common/Modal';
 import FormInput from '../../components/common/FormInput';
@@ -21,34 +21,69 @@ export default function SalesPage() {
     }
   });
 
-  const columns = [
-    { key: 'sale_no', label: 'Sale #', sortable: true },
-    { key: 'sale_date', label: 'Date', sortable: true,
-      render: (value) => format(new Date(value), 'dd MMM yyyy')
-    },
-    { key: 'item_name', label: 'Item', sortable: true },
+  const columnDefs = [
     {
-      key: 'quantity',
-      label: 'Quantity',
+      headerName: 'Sale #',
+      field: 'sale_no',
       sortable: true,
-      render: (value, row) => `${parseFloat(value).toFixed(2)} ${row.unit_of_measure}`
+      filter: true,
+      flex: 1
     },
     {
-      key: 'unit_price',
-      label: 'Unit Price',
+      headerName: 'Date',
+      field: 'sale_date',
       sortable: true,
-      render: (value) => `$${parseFloat(value).toFixed(2)}`
+      filter: 'agDateColumnFilter',
+      flex: 1,
+      valueFormatter: params => format(new Date(params.value), 'dd MMM yyyy')
     },
     {
-      key: 'total_amount',
-      label: 'Total',
+      headerName: 'Item',
+      field: 'item_name',
       sortable: true,
-      render: (value) => <strong className="revenue">${parseFloat(value).toFixed(2)}</strong>
+      filter: true,
+      flex: 2
     },
-    { key: 'customer_name', label: 'Customer', sortable: true,
-      render: (value) => value || '—'
+    {
+      headerName: 'Quantity',
+      field: 'quantity',
+      sortable: true,
+      filter: 'agNumberColumnFilter',
+      flex: 1,
+      valueFormatter: params => `${parseFloat(params.value).toFixed(2)} ${params.data.unit_of_measure}`
     },
-    { key: 'warehouse_name', label: 'Warehouse', sortable: false }
+    {
+      headerName: 'Unit Price',
+      field: 'unit_price',
+      sortable: true,
+      filter: 'agNumberColumnFilter',
+      flex: 1,
+      valueFormatter: params => `$${parseFloat(params.value).toFixed(2)}`
+    },
+    {
+      headerName: 'Total',
+      field: 'total_amount',
+      sortable: true,
+      filter: 'agNumberColumnFilter',
+      flex: 1,
+      cellRenderer: (params) => (
+        <strong className="revenue">${parseFloat(params.value).toFixed(2)}</strong>
+      )
+    },
+    {
+      headerName: 'Customer',
+      field: 'customer_name',
+      sortable: true,
+      filter: true,
+      flex: 1.5,
+      valueFormatter: params => params.value || '—'
+    },
+    {
+      headerName: 'Warehouse',
+      field: 'warehouse_name',
+      filter: true,
+      flex: 1.5
+    }
   ];
 
   const handleNew = () => {
@@ -85,7 +120,20 @@ export default function SalesPage() {
               </div>
             </div>
           </div>
-          <DataTable columns={columns} data={sales} />
+          <div className="ag-theme-quartz" style={{ height: 600, width: '100%' }}>
+            <AgGridReact
+              rowData={sales}
+              columnDefs={columnDefs}
+              defaultColDef={{
+                resizable: true,
+                sortable: false,
+                filter: false
+              }}
+              pagination={true}
+              paginationPageSize={20}
+              paginationPageSizeSelector={[10, 20, 50, 100]}
+            />
+          </div>
         </>
       )}
 

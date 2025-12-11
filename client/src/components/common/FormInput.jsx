@@ -11,16 +11,27 @@ export default function FormInput({
   required = false,
   disabled = false,
   options = [], // For select
-  rows = 3 // For textarea
+  rows = 3, // For textarea
+  tooltip // New prop for tooltip
 }) {
   const inputId = `input-${name}`;
 
   return (
     <div className="form-input-group">
-      <label htmlFor={inputId} className="form-label">
-        {label}
-        {required && <span className="required">*</span>}
-      </label>
+      {type !== 'searchable-select' && (
+        <div className="form-label-container">
+          <label htmlFor={inputId} className="form-label">
+            {label}
+            {required && <span className="required">*</span>}
+          </label>
+          {tooltip && (
+            <div className="tooltip-wrapper">
+              <span className="tooltip-icon" title={tooltip}>ⓘ</span>
+              <div className="tooltip-popup">{tooltip}</div>
+            </div>
+          )}
+        </div>
+      )}
 
       {type === 'textarea' ? (
         <textarea
@@ -52,16 +63,24 @@ export default function FormInput({
           ))}
         </select>
       ) : type === 'searchable-select' ? (
-        <SearchableSelect
-          name={name}
-          value={value}
-          onChange={onChange}
-          options={options}
-          placeholder={placeholder}
-          required={required}
-          disabled={disabled}
-          label={label}
-        />
+        <div className="searchable-select-with-tooltip">
+          <SearchableSelect
+            name={name}
+            value={value}
+            onChange={onChange}
+            options={options}
+            placeholder={placeholder}
+            required={required}
+            disabled={disabled}
+            label={label} // Pass the label to the component
+          />
+          {tooltip && (
+            <div className="tooltip-wrapper tooltip-select">
+              <span className="tooltip-icon" title={tooltip}>ⓘ</span>
+              <div className="tooltip-popup">{tooltip}</div>
+            </div>
+          )}
+        </div>
       ) : type === 'checkbox' ? (
         <div className="form-checkbox">
           <input

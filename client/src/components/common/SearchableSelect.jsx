@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import './SearchableSelect.css';
 
 export default function SearchableSelect({
@@ -10,22 +10,26 @@ export default function SearchableSelect({
   placeholder = "Search...",
   required = false,
   disabled = false,
-  filterOption = (option, query) => 
+  filterOption = (option, query) =>
     option.label.toLowerCase().includes(query.toLowerCase())
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredOptions, setFilteredOptions] = useState(options);
   const containerRef = useRef(null);
 
-  // Filter options based on search query
-  useEffect(() => {
+  // Memoize the filter function to prevent recreating on every render
+  const memoizedFilterOption = useCallback(
+    (option, query) => filterOption(option, query),
+    [filterOption]
+  );
+
+  // Filter options based on search query - use useMemo instead of useEffect
+  const filteredOptions = useMemo(() => {
     if (searchQuery.trim() === '') {
-      setFilteredOptions(options);
-    } else {
-      setFilteredOptions(options.filter(option => filterOption(option, searchQuery)));
+      return options;
     }
-  }, [searchQuery, options, filterOption]);
+    return options.filter(option => memoizedFilterOption(option, searchQuery));
+  }, [searchQuery, options, memoizedFilterOption]);
 
   // Handle clicks outside to close dropdown
   useEffect(() => {
@@ -61,13 +65,16 @@ export default function SearchableSelect({
     const selectedOption = options.find(opt => opt.value === value);
     if (selectedOption) {
       setSearchQuery(selectedOption.label);
-    } else {
+    } else if (!value) {
       setSearchQuery('');
     }
   }, [value, options]);
 
   // Filter options to show available options
-  const availableOptions = filteredOptions.filter(option => option.value !== value);
+  const availableOptions = useMemo(() =>
+    filteredOptions.filter(option => option.value !== value),
+    [filteredOptions, value]
+  );
 
   return (
     <div className="searchable-select-container" ref={containerRef}>
@@ -75,7 +82,7 @@ export default function SearchableSelect({
         {label}
         {required && <span className="required">*</span>}
       </label>
-      
+
       <div className={`searchable-select ${disabled ? 'disabled' : ''} ${isOpen ? 'open' : ''}`}>
         <input
           type="text"
@@ -86,7 +93,7 @@ export default function SearchableSelect({
           disabled={disabled}
           className="searchable-select-input"
         />
-        
+
         <div className={`searchable-select-dropdown ${isOpen ? 'visible' : ''}`}>
           {availableOptions.length > 0 ? (
             availableOptions.map((option) => (

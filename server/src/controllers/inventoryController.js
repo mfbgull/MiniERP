@@ -301,6 +301,29 @@ function getItemLedger(req, res) {
   }
 }
 
+function getStockBalances(req, res) {
+  try {
+    const balances = db.prepare(`
+      SELECT
+        sb.*,
+        i.item_code,
+        i.item_name,
+        i.unit_of_measure,
+        w.warehouse_code,
+        w.warehouse_name
+      FROM stock_balances sb
+      JOIN items i ON sb.item_id = i.id
+      JOIN warehouses w ON sb.warehouse_id = w.id
+      ORDER BY i.item_code, w.warehouse_code
+    `).all();
+
+    res.json(balances);
+  } catch (error) {
+    console.error('Get stock balances error:', error);
+    res.status(500).json({ error: 'Failed to fetch stock balances' });
+  }
+}
+
 module.exports = {
   // Items
   getItems,
@@ -321,5 +344,6 @@ module.exports = {
   getStockMovements,
   createStockMovement,
   getStockSummary,
-  getItemLedger
+  getItemLedger,
+  getStockBalances
 };

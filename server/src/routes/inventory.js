@@ -39,5 +39,6 @@ router.post('/stock-movements', inventoryController.createStockMovement);
 // Stock reports
 router.get('/stock-summary', inventoryController.getStockSummary);
 router.get('/stock-ledger/:itemId', inventoryController.getItemLedger);
+router.get('/stock-balances', inventoryController.getStockBalances);
 
 module.exports = router;

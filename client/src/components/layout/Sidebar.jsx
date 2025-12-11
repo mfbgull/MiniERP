@@ -13,7 +13,8 @@ export default function Sidebar() {
       children: [
         { path: '/inventory/items', label: 'Items' },
         { path: '/inventory/warehouses', label: 'Warehouses' },
-        { path: '/inventory/stock-movements', label: 'Stock Movements' }
+        { path: '/inventory/stock-movements', label: 'Stock Movements' },
+        { path: '/inventory/stock-by-warehouse', label: 'Stock by Warehouse' }
       ]
     },
     { path: '/purchases', label: 'Purchases', icon: '🛒' },

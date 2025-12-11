@@ -14,23 +14,27 @@ class Production {
     const {
       output_item_id,
       output_quantity,
-      warehouse_id,
+      warehouse_id, // Finished goods warehouse
+      raw_materials_warehouse_id, // Optional: defaults to finished goods warehouse for backward compatibility
       production_date,
       input_items, // Array of { item_id, quantity }
       bom_id, // Optional BOM reference
       remarks
     } = data;
 
+    // Use finished goods warehouse as default for raw materials if not specified (backward compatibility)
+    const materialsWarehouseId = raw_materials_warehouse_id || warehouse_id;
+
     const transaction = db.transaction(() => {
       // Generate production number
       const productionNo = this.generateProductionNo();
 
-      // Insert production record
+      // Insert production record with both warehouse fields
       const productionStmt = db.prepare(`
         INSERT INTO productions (
           production_no, output_item_id, output_quantity, warehouse_id,
-          production_date, bom_id, remarks, created_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          raw_materials_warehouse_id, production_date, bom_id, remarks, created_by
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       const result = productionStmt.run(
@@ -38,6 +42,7 @@ class Production {
         output_item_id,
         output_quantity,
         warehouse_id,
+        materialsWarehouseId, // Store the raw materials warehouse
         production_date,
         bom_id || null,
         remarks || null,
@@ -49,51 +54,51 @@ class Production {
       // Insert input items (raw materials consumed)
       const inputStmt = db.prepare(`
         INSERT INTO production_inputs (
-          production_id, item_id, quantity
-        ) VALUES (?, ?, ?)
+          production_id, item_id, quantity, warehouse_id
+        ) VALUES (?, ?, ?, ?)
       `);
 
-      // Consume raw materials (negative stock movements)
+      // Consume raw materials (negative stock movements) from the source warehouse
       for (const input of input_items) {
-        // Check if sufficient stock available
+        // Check if sufficient stock available in the materials warehouse
         const stockBalance = db.prepare(`
           SELECT quantity FROM stock_balances
           WHERE item_id = ? AND warehouse_id = ?
-        `).get(input.item_id, warehouse_id);
+        `).get(input.item_id, materialsWarehouseId);
 
         const availableStock = stockBalance ? parseFloat(stockBalance.quantity) : 0;
 
         if (availableStock < input.quantity) {
           const item = db.prepare('SELECT item_name FROM items WHERE id = ?').get(input.item_id);
-          throw new Error(`Insufficient stock for ${item.item_name}. Available: ${availableStock}, Required: ${input.quantity}`);
+          throw new Error(`Insufficient stock for ${item.item_name} in warehouse. Available: ${availableStock}, Required: ${input.quantity}`);
         }
 
-        // Record input item
-        inputStmt.run(productionId, input.item_id, input.quantity);
+        // Record input item with warehouse information
+        inputStmt.run(productionId, input.item_id, input.quantity, materialsWarehouseId);
 
-        // Create negative stock movement (consumption)
+        // Create negative stock movement (consumption) from the materials warehouse
         StockMovement.recordMovement({
           item_id: input.item_id,
-          warehouse_id,
+          warehouse_id: materialsWarehouseId, // Consume from materials warehouse
           quantity: -input.quantity,
           movement_type: 'PRODUCTION',
           reference_type: 'Production',
           reference_id: productionId,
           transaction_date: production_date,
-          remarks: `Consumed for production: ${productionNo}`
+          remarks: `Consumed for production: ${productionNo} (from warehouse)`
         }, userId);
       }
 
-      // Produce finished goods (positive stock movement)
+      // Produce finished goods (positive stock movement) to the destination warehouse
       StockMovement.recordMovement({
         item_id: output_item_id,
-        warehouse_id,
+        warehouse_id: warehouse_id, // Produce to finished goods warehouse
         quantity: output_quantity,
         movement_type: 'PRODUCTION',
         reference_type: 'Production',
         reference_id: productionId,
         transaction_date: production_date,
-        remarks: `Produced from: ${productionNo}`
+        remarks: `Produced to: ${productionNo} (to warehouse)`
       }, userId);
 
       // Log activity
@@ -105,7 +110,7 @@ class Production {
         'CREATE',
         'Production',
         productionId,
-        `Recorded production ${productionNo}: ${output_quantity} units produced`
+        `Recorded production ${productionNo}: ${output_quantity} units produced (Materials from: WH-${materialsWarehouseId}, Goods to: WH-${warehouse_id})`
       );
 
       // Return production with details
@@ -147,12 +152,15 @@ class Production {
         i.item_code as output_item_code,
         i.item_name as output_item_name,
         i.unit_of_measure as output_uom,
-        w.warehouse_code,
-        w.warehouse_name,
+        fgw.warehouse_code as finished_goods_warehouse_code,
+        fgw.warehouse_name as finished_goods_warehouse_name,
+        rmw.warehouse_code as raw_materials_warehouse_code,
+        rmw.warehouse_name as raw_materials_warehouse_name,
         u.username as created_by_username
       FROM productions p
       JOIN items i ON p.output_item_id = i.id
-      JOIN warehouses w ON p.warehouse_id = w.id
+      JOIN warehouses fgw ON p.warehouse_id = fgw.id  -- Finished goods warehouse
+      LEFT JOIN warehouses rmw ON p.raw_materials_warehouse_id = rmw.id  -- Raw materials warehouse
       JOIN users u ON p.created_by = u.id
       WHERE 1=1
     `;
@@ -175,8 +183,15 @@ class Production {
     }
 
     if (filters.warehouse_id) {
+      // Filter by finished goods warehouse
       query += ` AND p.warehouse_id = ?`;
       params.push(filters.warehouse_id);
+    }
+
+    if (filters.raw_materials_warehouse_id) {
+      // Filter by raw materials warehouse
+      query += ` AND p.raw_materials_warehouse_id = ?`;
+      params.push(filters.raw_materials_warehouse_id);
     }
 
     query += ` ORDER BY p.production_date DESC, p.created_at DESC`;
@@ -199,26 +214,32 @@ class Production {
         i.item_code as output_item_code,
         i.item_name as output_item_name,
         i.unit_of_measure as output_uom,
-        w.warehouse_code,
-        w.warehouse_name,
+        fgw.warehouse_code as finished_goods_warehouse_code,
+        fgw.warehouse_name as finished_goods_warehouse_name,
+        rmw.warehouse_code as raw_materials_warehouse_code,
+        rmw.warehouse_name as raw_materials_warehouse_name,
         u.username as created_by_username
       FROM productions p
       JOIN items i ON p.output_item_id = i.id
-      JOIN warehouses w ON p.warehouse_id = w.id
+      JOIN warehouses fgw ON p.warehouse_id = fgw.id  -- Finished goods warehouse
+      LEFT JOIN warehouses rmw ON p.raw_materials_warehouse_id = rmw.id  -- Raw materials warehouse
       JOIN users u ON p.created_by = u.id
       WHERE p.id = ?
     `).get(id);
 
     if (production) {
-      // Get input items
+      // Get input items with warehouse information
       production.inputs = db.prepare(`
         SELECT
           pi.*,
           i.item_code,
           i.item_name,
-          i.unit_of_measure
+          i.unit_of_measure,
+          w.warehouse_code as warehouse_code,
+          w.warehouse_name as warehouse_name
         FROM production_inputs pi
         JOIN items i ON pi.item_id = i.id
+        JOIN warehouses w ON pi.warehouse_id = w.id
         WHERE pi.production_id = ?
       `).all(id);
     }

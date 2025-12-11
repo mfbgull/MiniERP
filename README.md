@@ -12,6 +12,7 @@ A lightweight, local ERP system built with React, Node.js, and SQLite. Perfect f
 - ✅ **Sales & Invoicing** - Customer management, sales recording (Phase 4)
 - ✅ **Manufacturing** - Production tracking, BOM system (Phase 5)
 - ✅ **Searchable Selects** - Enhanced user experience with searchable dropdowns (Recent Enhancement)
+- ✅ **CRUD Operations** - Full create, read, update, delete functionality for BOM, Items, and Production records (Recent Enhancement)
 
 ## Tech Stack
 

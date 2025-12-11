@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import { AgGridReact } from 'ag-grid-react';
 import api from '../../utils/api';
-import DataTable from '../../components/common/DataTable';
 import Button from '../../components/common/Button';
 import Modal from '../../components/common/Modal';
 import FormInput from '../../components/common/FormInput';
@@ -14,6 +14,132 @@ export default function BOMPage() {
   const [selectedBOM, setSelectedBOM] = useState(null);
   const queryClient = useQueryClient();
 
+  const deleteBomMutation = useMutation({
+    mutationFn: async (bomId) => {
+      return api.delete(`/boms/${bomId}`);
+    },
+    onSuccess: () => {
+      toast.success('BOM deleted successfully!');
+      queryClient.invalidateQueries(['boms']);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to delete BOM');
+    }
+  });
+
+  const toggleBomStatusMutation = useMutation({
+    mutationFn: async (bomId) => {
+      return api.patch(`/boms/${bomId}/toggle-active`);
+    },
+    onSuccess: (updatedBom) => {
+      const message = updatedBom.is_active ?
+        'BOM activated successfully!' :
+        'BOM deactivated successfully!';
+      toast.success(message);
+      queryClient.invalidateQueries(['boms']);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to update BOM status');
+    }
+  });
+
+  const [editingBOM, setEditingBOM] = useState(null);
+
+  const columnDefs = [
+    {
+      headerName: 'BOM #',
+      field: 'bom_no',
+      sortable: true,
+      filter: true,
+      flex: 1
+    },
+    {
+      headerName: 'BOM Name',
+      field: 'bom_name',
+      sortable: true,
+      filter: true,
+      flex: 2
+    },
+    {
+      headerName: 'Finished Item',
+      field: 'finished_item_name',
+      sortable: true,
+      filter: true,
+      flex: 2
+    },
+    {
+      headerName: 'Output Qty',
+      field: 'quantity',
+      sortable: true,
+      filter: 'agNumberColumnFilter',
+      flex: 1,
+      valueFormatter: params => `${params.value} ${params.data.finished_uom}`
+    },
+    {
+      headerName: 'Raw Materials',
+      field: 'item_count',
+      sortable: true,
+      filter: 'agNumberColumnFilter',
+      flex: 1,
+      valueFormatter: params => `${params.value} items`
+    },
+    {
+      headerName: 'Status',
+      field: 'is_active',
+      sortable: true,
+      filter: true,
+      flex: 1,
+      cellRenderer: (params) => (
+        <span className={`status-badge ${params.value ? 'active' : 'inactive'}`}>
+          {params.value ? 'Active' : 'Inactive'}
+        </span>
+      )
+    },
+    {
+      headerName: 'Actions',
+      field: 'actions',
+      flex: 2,
+      cellRenderer: (params) => (
+        <div className="table-actions">
+          <Button
+            variant={params.data.is_active ? "warning" : "secondary"}
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleToggleBomStatus(params.data);
+            }}
+            disabled={toggleBomStatusMutation.isPending}
+          >
+            {params.data.is_active ? 'Deactivate' : 'Activate'}
+          </Button>
+          <Button
+            variant="secondary"
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              setEditingBOM(params.data);
+              setIsModalOpen(true);
+            }}
+            disabled={deleteBomMutation.isPending}
+          >
+            Edit
+          </Button>
+          <Button
+            variant="danger"
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteBom(params.data);
+            }}
+            disabled={deleteBomMutation.isPending}
+          >
+            {deleteBomMutation.isPending ? 'Deleting...' : 'Delete'}
+          </Button>
+        </div>
+      )
+    }
+  ];
+
   const { data: boms = [], isLoading } = useQuery({
     queryKey: ['boms'],
     queryFn: async () => {
@@ -22,33 +148,18 @@ export default function BOMPage() {
     }
   });
 
-  const columns = [
-    { key: 'bom_no', label: 'BOM #', sortable: true },
-    { key: 'bom_name', label: 'BOM Name', sortable: true },
-    { key: 'finished_item_name', label: 'Finished Item', sortable: true },
-    {
-      key: 'quantity',
-      label: 'Output Qty',
-      sortable: true,
-      render: (value, row) => `${value} ${row.finished_uom}`
-    },
-    {
-      key: 'item_count',
-      label: 'Raw Materials',
-      sortable: true,
-      render: (value) => `${value} items`
-    },
-    {
-      key: 'is_active',
-      label: 'Status',
-      sortable: true,
-      render: (value) => (
-        <span className={`status-badge ${value ? 'active' : 'inactive'}`}>
-          {value ? 'Active' : 'Inactive'}
-        </span>
-      )
+  const handleDeleteBom = (bom) => {
+    if (window.confirm(`Are you sure you want to delete BOM: ${bom.bom_name}?`)) {
+      deleteBomMutation.mutate(bom.id);
     }
-  ];
+  };
+
+  const handleToggleBomStatus = (bom) => {
+    const action = bom.is_active ? 'deactivate' : 'activate';
+    if (window.confirm(`Are you sure you want to ${action} BOM: ${bom.bom_name}?`)) {
+      toggleBomStatusMutation.mutate(bom.id);
+    }
+  };
 
   const handleRowClick = async (bom) => {
     try {
@@ -104,25 +215,44 @@ export default function BOMPage() {
             </div>
           </div>
 
-          <DataTable
-            columns={columns}
-            data={boms}
-            onRowClick={handleRowClick}
-          />
+          <div className="ag-theme-quartz" style={{ height: 600, width: '100%' }}>
+            <AgGridReact
+              rowData={boms}
+              columnDefs={columnDefs}
+              defaultColDef={{
+                resizable: true,
+                sortable: false,
+                filter: false
+              }}
+              pagination={true}
+              paginationPageSize={20}
+              paginationPageSizeSelector={[10, 20, 50, 100]}
+              onRowClicked={(params) => handleRowClick(params.data)}
+              rowSelection={{ mode: 'singleRow' }}
+            />
+          </div>
         </>
       )}
 
       <Modal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Create Bill of Materials"
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingBOM(null);
+        }}
+        title={editingBOM ? "Edit Bill of Materials" : "Create Bill of Materials"}
         size="large"
       >
         <BOMForm
-          onClose={() => setIsModalOpen(false)}
+          bom={editingBOM}
+          onClose={() => {
+            setIsModalOpen(false);
+            setEditingBOM(null);
+          }}
           onSuccess={() => {
             queryClient.invalidateQueries(['boms']);
             setIsModalOpen(false);
+            setEditingBOM(null);
           }}
         />
       </Modal>
@@ -141,17 +271,23 @@ export default function BOMPage() {
   );
 }
 
-function BOMForm({ onClose, onSuccess }) {
+function BOMForm({ bom, onClose, onSuccess }) {
+  const isEdit = !!bom;
+
   const [formData, setFormData] = useState({
-    bom_name: '',
-    finished_item_id: '',
-    quantity: 1,
-    description: ''
+    bom_name: bom?.bom_name || '',
+    finished_item_id: bom?.finished_item_id || '',
+    quantity: bom?.quantity || 1,
+    description: bom?.description || ''
   });
 
-  const [bomItems, setBomItems] = useState([
-    { item_id: '', quantity: '' }
-  ]);
+  const [bomItems, setBomItems] = useState(
+    bom?.items?.map(item => ({
+      item_id: item.item_id,
+      quantity: item.quantity,
+      id: item.id // Keep the original item ID if editing
+    })) || [{ item_id: '', quantity: '' }]
+  );
 
   // Fetch items - MUST be called before any conditional returns
   const { data: items = [], isLoading: itemsLoading } = useQuery({
@@ -165,14 +301,18 @@ function BOMForm({ onClose, onSuccess }) {
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const mutation = useMutation({
     mutationFn: async (data) => {
-      return api.post('/boms', data);
+      if (isEdit && bom?.id) {
+        return api.put(`/boms/${bom.id}`, data);
+      } else {
+        return api.post('/boms', data);
+      }
     },
     onSuccess: () => {
-      toast.success('BOM created successfully!');
+      toast.success(isEdit ? 'BOM updated successfully!' : 'BOM created successfully!');
       onSuccess();
     },
     onError: (error) => {
-      toast.error(error.response?.data?.error || 'Failed to create BOM');
+      toast.error(error.response?.data?.error || (isEdit ? 'Failed to update BOM' : 'Failed to create BOM'));
     }
   });
 
@@ -376,7 +516,7 @@ function BOMForm({ onClose, onSuccess }) {
           Cancel
         </Button>
         <Button type="submit" variant="primary" loading={mutation.isPending}>
-          Create BOM
+          {isEdit ? 'Update BOM' : 'Create BOM'}
         </Button>
       </div>
     </form>

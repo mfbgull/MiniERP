@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import { AgGridReact } from 'ag-grid-react';
 import api from '../../utils/api';
-import DataTable from '../../components/common/DataTable';
 import Button from '../../components/common/Button';
 import Modal from '../../components/common/Modal';
 import FormInput from '../../components/common/FormInput';
@@ -11,46 +11,114 @@ import './ItemsPage.css';
 export default function ItemsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
   const queryClient = useQueryClient();
 
   // Fetch items
   const { data: items = [], isLoading } = useQuery({
-    queryKey: ['items', searchTerm],
+    queryKey: ['items'],
     queryFn: async () => {
-      const response = await api.get('/inventory/items', {
-        params: { search: searchTerm }
-      });
+      const response = await api.get('/inventory/items');
       return response.data;
     }
   });
 
-  const columns = [
-    { key: 'item_code', label: 'Item Code', sortable: true },
-    { key: 'item_name', label: 'Item Name', sortable: true },
-    { key: 'category', label: 'Category', sortable: true },
-    { key: 'unit_of_measure', label: 'UOM', sortable: false },
+  const deleteItemMutation = useMutation({
+    mutationFn: async (itemId) => {
+      return api.delete(`/inventory/items/${itemId}`);
+    },
+    onSuccess: () => {
+      toast.success('Item deleted successfully!');
+      queryClient.invalidateQueries(['items']);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to delete item');
+    }
+  });
+
+  const handleDeleteItem = (item) => {
+    if (window.confirm(`Are you sure you want to delete item: ${item.item_name}?`)) {
+      deleteItemMutation.mutate(item.id);
+    }
+  };
+
+  const columnDefs = [
     {
-      key: 'current_stock',
-      label: 'Stock',
+      headerName: 'Item Code',
+      field: 'item_code',
       sortable: true,
-      render: (value, row) => (
-        <span className={value <= row.reorder_level && row.reorder_level > 0 ? 'low-stock' : ''}>
-          {parseFloat(value).toFixed(2)}
-        </span>
-      )
+      filter: true,
+      flex: 1
     },
     {
-      key: 'standard_cost',
-      label: 'Cost',
+      headerName: 'Item Name',
+      field: 'item_name',
       sortable: true,
-      render: (value) => `$${parseFloat(value).toFixed(2)}`
+      filter: true,
+      flex: 2
     },
     {
-      key: 'standard_selling_price',
-      label: 'Price',
+      headerName: 'Category',
+      field: 'category',
       sortable: true,
-      render: (value) => `$${parseFloat(value).toFixed(2)}`
+      filter: true,
+      flex: 1
+    },
+    {
+      headerName: 'UOM',
+      field: 'unit_of_measure',
+      flex: 0.7
+    },
+    {
+      headerName: 'Stock',
+      field: 'current_stock',
+      sortable: true,
+      filter: 'agNumberColumnFilter',
+      flex: 0.8,
+      valueFormatter: params => parseFloat(params.value || 0).toFixed(2),
+      cellStyle: params => {
+        if (params.data.reorder_level > 0 && params.value <= params.data.reorder_level) {
+          return { backgroundColor: '#fff3cd', color: '#856404' };
+        }
+        return null;
+      }
+    },
+    {
+      headerName: 'Cost',
+      field: 'standard_cost',
+      sortable: true,
+      filter: 'agNumberColumnFilter',
+      flex: 0.8,
+      valueFormatter: params => `$${parseFloat(params.value || 0).toFixed(2)}`
+    },
+    {
+      headerName: 'Price',
+      field: 'standard_selling_price',
+      sortable: true,
+      filter: 'agNumberColumnFilter',
+      flex: 0.8,
+      valueFormatter: params => `$${parseFloat(params.value || 0).toFixed(2)}`
+    },
+    {
+      headerName: 'Actions',
+      field: 'actions',
+      flex: 0.8,
+      cellRenderer: (params) => {
+        return (
+          <div className="table-actions">
+            <Button
+              variant="danger"
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteItem(params.data);
+              }}
+              disabled={deleteItemMutation.isPending}
+            >
+              {deleteItemMutation.isPending ? 'Deleting...' : 'Delete'}
+            </Button>
+          </div>
+        );
+      }
     }
   ];
 
@@ -81,26 +149,27 @@ export default function ItemsPage() {
         </Button>
       </div>
 
-      <div className="page-filters">
-        <input
-          type="text"
-          placeholder="Search items..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="search-input"
-        />
-      </div>
-
       {isLoading ? (
         <div className="loading">
           <div className="spinner"></div>
         </div>
       ) : (
-        <DataTable
-          columns={columns}
-          data={items}
-          onRowClick={handleRowClick}
-        />
+        <div className="ag-theme-quartz" style={{ height: 600, width: '100%' }}>
+          <AgGridReact
+            rowData={items}
+            columnDefs={columnDefs}
+            defaultColDef={{
+              resizable: true,
+              sortable: false,
+              filter: false
+            }}
+            pagination={true}
+            paginationPageSize={20}
+            paginationPageSizeSelector={[10, 20, 50, 100]}
+            onRowClicked={(params) => handleRowClick(params.data)}
+            rowSelection={{ mode: 'singleRow' }}
+          />
+        </div>
       )}
 
       <Modal
