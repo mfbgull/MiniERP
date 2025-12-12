@@ -10,11 +10,27 @@
 .searchable-select-input {
   width: 100%;
   padding: 0.5rem;
+  padding-right: 2rem; /* Make room for the arrow */
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 1rem;
   background-color: white;
   cursor: pointer;
+}
+
+.searchable-select-arrow {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+  font-size: 0.8rem;
+  pointer-events: none;
+  transition: transform 0.2s;
+}
+
+.searchable-select.open .searchable-select-arrow {
+  transform: translateY(-50%) rotate(180deg);
 }
 
 .searchable-select-input:focus {
@@ -52,6 +68,7 @@
   padding: 0.5rem;
   cursor: pointer;
   background-color: white;
+  color: #1f2937; /* Dark gray text for better contrast */
   border-bottom: 1px solid #f0f0f0;
 }
 

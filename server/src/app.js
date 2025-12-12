@@ -11,6 +11,9 @@ const productionRoutes = require('./routes/production');
 const bomRoutes = require('./routes/bom');
 const settingsRoutes = require('./routes/settings');
 const invoiceRoutes = require('./routes/invoices');
+const customerRoutes = require('./routes/customers');
+const paymentRoutes = require('./routes/payments');
+const reportRoutes = require('./routes/reports');
 
 // Create Express app
 const app = express();
@@ -46,6 +49,9 @@ app.use('/api', productionRoutes);
 app.use('/api/boms', bomRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/invoices', invoiceRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/reports', reportRoutes);
 
 // 404 handler
 app.use(notFoundHandler);

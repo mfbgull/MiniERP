@@ -17,10 +17,19 @@ export default function Sidebar() {
         { path: '/inventory/stock-by-warehouse', label: 'Stock by Warehouse' }
       ]
     },
+    {
+      label: 'Sales',
+      icon: '💰',
+      children: [
+        { path: '/sales', label: 'Sales Orders' },
+        { path: '/sales/invoice', label: 'Create Invoice' },
+        { path: '/customers', label: 'Customers' },
+        { path: '/reports/accounts-receivable', label: 'A/R Reports' }
+      ]
+    },
     { path: '/purchases', label: 'Purchases', icon: '🛒' },
     { path: '/bom', label: 'Bill of Materials', icon: '📋' },
     { path: '/production', label: 'Production', icon: '🏭' },
-    { path: '/sales', label: 'Sales', icon: '💰' },
     { path: '/settings', label: 'Settings', icon: '⚙️' }
   ];
 

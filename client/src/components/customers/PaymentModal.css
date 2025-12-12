@@ -1,0 +1,243 @@
+.payment-modal {
+  padding: var(--space-lg);
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.customer-info {
+  padding: var(--space-sm);
+  background: var(--neutral-50);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--neutral-200);
+}
+
+.customer-name {
+  font-weight: 600;
+  color: var(--neutral-900);
+}
+
+.customer-code {
+  font-size: 0.9rem;
+  color: var(--neutral-600);
+}
+
+.allocation-section {
+  margin: var(--space-lg) 0;
+  padding: var(--space-md);
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius-md);
+  background: var(--neutral-25);
+}
+
+.allocation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.allocation-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--neutral-800);
+}
+
+.available-invoices {
+  margin-bottom: var(--space-md);
+}
+
+.invoice-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-sm);
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-xs);
+  background: white;
+}
+
+.invoice-info {
+  flex: 1;
+}
+
+.invoice-no {
+  font-weight: 600;
+  color: var(--neutral-800);
+  margin-bottom: var(--space-xs);
+}
+
+.invoice-details {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: var(--neutral-600);
+}
+
+.invoice-amount {
+  font-weight: 600;
+  color: var(--neutral-900);
+}
+
+.allocated-invoices {
+  margin: var(--space-md) 0;
+}
+
+.allocation-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-sm);
+  border: 1px solid var(--success);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-xs);
+  background: color-mix(in srgb, var(--success), transparent 95%);
+}
+
+.allocation-info {
+  flex: 1;
+}
+
+.allocation-invoice {
+  font-weight: 600;
+  color: var(--success-dark);
+  margin-bottom: var(--space-xs);
+}
+
+.allocation-details {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.allocation-details .form-input {
+  width: 120px;
+  margin: 0;
+}
+
+.allocation-amount {
+  font-size: 0.9rem;
+  color: var(--neutral-600);
+}
+
+.allocation-input {
+  width: 120px;
+}
+
+.allocation-summary {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius-sm);
+  background: var(--neutral-50);
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-xs) 0;
+  border-bottom: 1px solid var(--neutral-100);
+}
+
+.summary-row:last-child {
+  border-bottom: none;
+  font-weight: 600;
+}
+
+.unallocated-amount {
+  color: var(--error);
+}
+
+.no-invoices {
+  color: var(--neutral-500);
+  font-style: italic;
+  padding: var(--space-md);
+  text-align: center;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--neutral-200);
+}
+
+.error-message {
+  color: var(--error);
+  font-size: 0.9rem;
+  margin-bottom: var(--space-sm);
+}
+
+.loading {
+  text-align: center;
+  padding: var(--space-md);
+}
+
+.spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--neutral-200);
+  border-top: 2px solid var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: var(--space-sm);
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.form-group {
+  margin-bottom: var(--space-md);
+}
+
+.form-label {
+  display: block;
+  margin-bottom: var(--space-xs);
+  font-weight: 500;
+  color: var(--neutral-700);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .payment-modal {
+    padding: var(--space-md);
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .allocation-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-md);
+  }
+  
+  .invoice-item, .allocation-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-sm);
+  }
+  
+  .invoice-details {
+    justify-content: flex-end;
+  }
+  
+  .allocation-details {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-xs);
+  }
+}

@@ -50,13 +50,17 @@ export default function SearchableSelect({
   };
 
   const handleInputChange = (event) => {
-    setSearchQuery(event.target.value);
-    setIsOpen(true);
+    const value = event.target.value;
+    setSearchQuery(value);
+    // Open dropdown when user starts typing
+    if (value.trim() !== '' && !isOpen) {
+      setIsOpen(true);
+    }
   };
 
   const handleInputClick = () => {
     if (!disabled) {
-      setIsOpen(true);
+      setIsOpen(!isOpen); // Toggle dropdown
     }
   };
 
@@ -89,10 +93,12 @@ export default function SearchableSelect({
           value={searchQuery}
           onChange={handleInputChange}
           onClick={handleInputClick}
+          onFocus={handleInputClick}
           placeholder={placeholder}
           disabled={disabled}
           className="searchable-select-input"
         />
+        <div className="searchable-select-arrow">▼</div>
 
         <div className={`searchable-select-dropdown ${isOpen ? 'visible' : ''}`}>
           {availableOptions.length > 0 ? (

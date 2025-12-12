@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Printer, Download, Send, Plus, Trash2, Hash, Edit2 } from 'lucide-react';
+import { Printer, Download, Send, Plus, Trash2, Hash, Edit2, DollarSign, CreditCard } from 'lucide-react';
 import api from '../../utils/api';
 import Button from '../../components/common/Button';
 import FormInput from '../../components/common/FormInput';
@@ -19,9 +19,12 @@ export default function SalesInvoicePage() {
     customer_email: '',
     customer_phone: '',
     customer_address: '',
+    customer_current_balance: 0,
+    customer_credit_limit: 0,
+    customer_credit_utilization: 0,
     invoice_date: new Date().toISOString().split('T')[0],
     due_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    status: 'Draft',
+    status: 'Unpaid',
     discountScope: 'item',
     discount: {
       type: 'flat',
@@ -48,17 +51,33 @@ export default function SalesInvoicePage() {
       phone: '+1 123 456 7890',
       address: '456 Enterprise Ave, BC 12345',
       taxId: 'TAX-123456789',
+    },
+    payment: {
+      record_payment: true, // Default to checked
+      payment_date: new Date().toISOString().split('T')[0],
+      payment_amount: 0,
+      payment_method: 'Cash',
+      reference_no: '',
+      payment_notes: ''
     }
   });
 
   const [editingCell, setEditingCell] = useState(null);
+  const [existingPayments, setExistingPayments] = useState([]);
+  const [showNewPaymentForm, setShowNewPaymentForm] = useState(false);
 
   // Fetch customers
-  const { data: customers = [] } = useQuery({
+  const { data: customers = [], error: customersError, isLoading: customersLoading } = useQuery({
     queryKey: ['customers'],
     queryFn: async () => {
       const response = await api.get('/customers');
-      return response.data;
+      // Make sure response.data.data is an array
+      const customerData = Array.isArray(response.data.data) ? response.data.data : [];
+      console.log('Fetched customers:', customerData.length, 'customers');
+      return customerData;
+    },
+    onError: (error) => {
+      console.error('Error fetching customers:', error);
     }
   });
 
@@ -96,6 +115,53 @@ export default function SalesInvoicePage() {
     }
   }, [settings]);
 
+  // Update payment amount when invoice total changes and payment is being recorded
+  useEffect(() => {
+    if (invoice.payment.record_payment && !invoiceId) {
+      const total = calculateTotal();
+      setInvoice(prev => ({
+        ...prev,
+        payment: {
+          ...prev.payment,
+          payment_amount: total
+        }
+      }));
+    }
+  }, [invoice.items, invoice.discount, invoice.discountScope]);
+
+  // Set initial payment amount for new invoices
+  useEffect(() => {
+    if (!invoiceId && invoice.payment.record_payment) {
+      const total = calculateTotal();
+      if (total > 0 && invoice.payment.payment_amount === 0) {
+        setInvoice(prev => ({
+          ...prev,
+          payment: {
+            ...prev.payment,
+            payment_amount: total
+          }
+        }));
+      }
+    }
+  }, []); // Run once on mount
+
+  // Calculate expected status based on payment
+  const getExpectedStatus = () => {
+    if (!invoiceId) {
+      if (invoice.payment.record_payment) {
+        const total = calculateTotal();
+        const paymentAmount = invoice.payment.payment_amount;
+        if (paymentAmount >= total) {
+          return 'Paid';
+        } else if (paymentAmount > 0) {
+          return 'Partially Paid';
+        }
+      }
+      return 'Unpaid';
+    }
+    return invoice.status || 'Unpaid';
+  };
+
   // If editing existing invoice, fetch it
   useEffect(() => {
     if (invoiceId) {
@@ -118,23 +184,60 @@ export default function SalesInvoicePage() {
             }
           })) || [];
 
-          setInvoice({
-            ...invoiceData,
-            items: formattedItems,
-            customer_id: invoiceData.customer_id,
-            customer_name: invoiceData.customer_name,
-            customer_email: invoiceData.customer_email,
-            customer_phone: invoiceData.customer_phone,
-            customer_address: invoiceData.customer_address,
-            discountScope: invoiceData.discount_scope || 'item',
-            discount: {
-              type: invoiceData.discount_type || 'flat',
-              value: invoiceData.discount_value || 0
-            },
-            notes: invoiceData.notes || 'Thank you for your business. Payment is due within 14 days.',
-            terms: invoiceData.terms || 'Net 14 days. Late payments subject to 1.5% monthly interest.',
-            company: invoice.company
-          });
+          // Fetch customer balance information
+          let customerBalance = { currentBalance: 0 };
+          let customerInfo = {};
+
+          try {
+            const balanceResponse = await api.get(`/customers/${invoiceData.customer_id}/balance`);
+            customerBalance = balanceResponse.data.data;
+
+            const customerResponse = await api.get(`/customers/${invoiceData.customer_id}`);
+            customerInfo = customerResponse.data.data;
+          } catch (error) {
+            console.error('Error fetching customer info:', error);
+          }
+
+          // Fetch existing payments for this invoice
+          try {
+            const paymentsResponse = await api.get(`/invoices/${invoiceId}/payments`);
+            setExistingPayments(paymentsResponse.data.data || []);
+          } catch (error) {
+            console.error('Error fetching invoice payments:', error);
+            setExistingPayments([]);
+          }
+
+           setInvoice({
+             ...invoiceData,
+             items: formattedItems,
+             customer_id: invoiceData.customer_id,
+             customer_name: invoiceData.customer_name,
+             customer_email: invoiceData.customer_email,
+             customer_phone: invoiceData.customer_phone,
+             customer_address: invoiceData.customer_address,
+             customer_current_balance: customerBalance.currentBalance || 0,
+             customer_credit_limit: customerInfo.credit_limit || 0,
+             customer_credit_utilization: customerInfo.credit_limit && customerInfo.credit_limit > 0
+               ? (customerBalance.currentBalance / customerInfo.credit_limit) * 100
+               : 0,
+             discountScope: invoiceData.discount_scope || 'item',
+             discount: {
+               type: invoiceData.discount_type || 'flat',
+               value: invoiceData.discount_value || 0
+             },
+             notes: invoiceData.notes || 'Thank you for your business. Payment is due within 14 days.',
+             terms: invoiceData.terms || 'Net 14 days. Late payments subject to 1.5% monthly interest.',
+             company: invoice.company,
+             // Initialize payment object for new payments on existing invoices
+             payment: {
+               record_payment: false,
+               payment_date: new Date().toISOString().split('T')[0],
+               payment_amount: invoiceData.balance_amount || 0,
+               payment_method: 'Cash',
+               reference_no: '',
+               payment_notes: ''
+             }
+           });
         } catch (error) {
           toast.error('Failed to load invoice');
           navigate('/sales');
@@ -160,12 +263,72 @@ export default function SalesInvoicePage() {
     onSuccess: () => {
       toast.success(invoiceId ? 'Invoice updated successfully!' : 'Invoice created successfully!');
       queryClient.invalidateQueries(['invoices']);
-      navigate('/sales');
+      queryClient.invalidateQueries(['customers']);
+      queryClient.invalidateQueries(['customerInvoices', invoice.customer_id]);
+      // Navigate to customer detail page
+      navigate(`/customers/${invoice.customer_id}`);
     },
     onError: (error) => {
       toast.error(error.response?.data?.error || `Failed to ${invoiceId ? 'update' : 'create'} invoice`);
     }
   });
+
+  // Mutation for recording payment on existing invoice
+  const paymentMutation = useMutation({
+    mutationFn: async (paymentData) => {
+      return api.post('/payments', paymentData);
+    },
+    onSuccess: async () => {
+      toast.success('Payment recorded successfully!');
+      queryClient.invalidateQueries(['invoices']);
+      // Refresh existing payments list
+      try {
+        const paymentsResponse = await api.get(`/invoices/${invoiceId}/payments`);
+        setExistingPayments(paymentsResponse.data.data || []);
+        // Refresh invoice data to update balance
+        const invoiceResponse = await api.get(`/invoices/${invoiceId}`);
+        setInvoice(prev => ({
+          ...prev,
+          paid_amount: invoiceResponse.data.paid_amount,
+          balance_amount: invoiceResponse.data.balance_amount,
+          status: invoiceResponse.data.status,
+          payment: {
+            ...prev.payment,
+            record_payment: false,
+            payment_amount: invoiceResponse.data.balance_amount || 0
+          }
+        }));
+      } catch (error) {
+        console.error('Error refreshing data:', error);
+      }
+      setShowNewPaymentForm(false);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to record payment');
+    }
+  });
+
+  const handleRecordPayment = () => {
+    if (!invoice.payment.payment_amount || invoice.payment.payment_amount <= 0) {
+      toast.error('Payment amount must be greater than 0');
+      return;
+    }
+
+    const paymentData = {
+      customer_id: invoice.customer_id,
+      payment_date: invoice.payment.payment_date,
+      amount: invoice.payment.payment_amount,
+      payment_method: invoice.payment.payment_method,
+      reference_no: invoice.payment.reference_no,
+      notes: invoice.payment.payment_notes,
+      invoice_allocations: [{
+        invoice_id: parseInt(invoiceId, 10),
+        amount: invoice.payment.payment_amount
+      }]
+    };
+
+    paymentMutation.mutate(paymentData);
+  };
 
   const calculateItemDiscount = (item) => {
     const subtotal = item.quantity * item.rate;
@@ -294,15 +457,38 @@ export default function SalesInvoicePage() {
     return field === 'tax';
   };
 
-  const handleCustomerSelect = (customer) => {
-    setInvoice({
-      ...invoice,
-      customer_id: customer.id,
-      customer_name: customer.customer_name,
-      customer_email: customer.email,
-      customer_phone: customer.phone,
-      customer_address: customer.billing_address
-    });
+  const handleCustomerSelect = async (customer) => {
+    try {
+      // Fetch detailed customer information including balance
+      const response = await api.get(`/customers/${customer.id}/balance`);
+      const customerBalance = response.data.data;
+
+      // Update invoice with customer details and balance information
+      setInvoice({
+        ...invoice,
+        customer_id: customer.id,
+        customer_name: customer.customer_name,
+        customer_email: customer.email,
+        customer_phone: customer.phone,
+        customer_address: customer.billing_address,
+        customer_current_balance: customerBalance.currentBalance,
+        customer_credit_limit: customer.credit_limit || 0,
+        customer_credit_utilization: customer.credit_limit && customer.credit_limit > 0
+          ? (customerBalance.currentBalance / customer.credit_limit) * 100
+          : 0
+      });
+    } catch (error) {
+      // If balance fetch fails, still update with basic customer info
+      setInvoice({
+        ...invoice,
+        customer_id: customer.id,
+        customer_name: customer.customer_name,
+        customer_email: customer.email,
+        customer_phone: customer.phone,
+        customer_address: customer.billing_address
+      });
+      console.error('Error fetching customer balance:', error);
+    }
   };
 
   // Searchable Select Cell for Description with Stock Info
@@ -661,11 +847,19 @@ export default function SalesInvoicePage() {
 
     // Prepare invoice data for submission
     const invoiceData = {
-      ...invoice,
+      // For new invoices, don't send status - backend will determine it
+      // For existing invoices, send the status
+      ...(invoiceId && { status: invoice.status }),
+      invoice_no: invoice.invoice_no,
+      customer_id: invoice.customer_id,
+      invoice_date: invoice.invoice_date,
+      due_date: invoice.due_date,
       total_amount: calculateTotal(),
       discount_scope: invoice.discountScope,
       discount_type: invoice.discount.type,
       discount_value: invoice.discount.value,
+      notes: invoice.notes,
+      terms: invoice.terms,
       items: invoice.items.map(item => ({
         item_id: item.item_id,
         description: item.description,
@@ -674,7 +868,18 @@ export default function SalesInvoicePage() {
         tax_rate: item.tax,
         discount_type: item.discount.type,
         discount_value: item.discount.value
-      }))
+      })),
+      // Include payment data if payment is being recorded
+      ...(invoice.payment.record_payment && {
+        record_payment: true,
+        payment: {
+          payment_date: invoice.payment.payment_date,
+          amount: invoice.payment.payment_amount,
+          payment_method: invoice.payment.payment_method,
+          reference_no: invoice.payment.reference_no,
+          notes: invoice.payment.payment_notes
+        }
+      })
     };
 
     mutation.mutate(invoiceData);
@@ -686,9 +891,11 @@ export default function SalesInvoicePage() {
       <div className="action-bar-modern">
         <div className="action-left">
           <select
-            value={invoice.status}
+            value={invoiceId ? (invoice.status || 'Unpaid') : getExpectedStatus()}
             onChange={(e) => setInvoice({ ...invoice, status: e.target.value })}
-            className={`status-select-modern ${getStatusColor(invoice.status)}`}
+            className={`status-select-modern ${getStatusColor(invoiceId ? (invoice.status || 'Unpaid') : getExpectedStatus())}`}
+            disabled={!invoiceId} // Disable for new invoices
+            title={invoiceId ? 'Change invoice status' : 'Status determined automatically based on payment'}
           >
             <option value="Draft">Draft</option>
             <option value="Sent">Sent</option>
@@ -704,6 +911,14 @@ export default function SalesInvoicePage() {
           <Button variant="secondary" onClick={() => navigate('/sales')}>
             Cancel
           </Button>
+          {invoice.customer_id && (
+            <button
+              className="action-btn-secondary"
+              onClick={() => navigate(`/customers/${invoice.customer_id}`)}
+            >
+              <span>View Customer</span>
+            </button>
+          )}
           <button className="action-btn-secondary">
             <Download className="action-icon" />
             PDF
@@ -751,23 +966,40 @@ export default function SalesInvoicePage() {
                 type="searchable-select"
                 value={invoice.customer_name}
                 onChange={(e) => {
-                  const customer = customers.find(c => c.customer_name === e.target.value);
+                  const customer = Array.isArray(customers) ? customers.find(c => c.customer_name === e.target.value) : null;
                   if (customer) {
                     handleCustomerSelect(customer);
                   }
                 }}
-                options={customers.map(c => ({
-                  value: c.customer_name,
-                  label: c.customer_name
-                }))}
-                placeholder="Select customer..."
+                options={Array.isArray(customers)
+                  ? customers.map(c => ({
+                      value: c.customer_name,
+                      label: `${c.customer_name}${c.customer_code ? ` (${c.customer_code})` : ''}`
+                    }))
+                  : []
+                }
+                placeholder={customersLoading ? "Loading customers..." : customersError ? "Error loading customers" : "Select customer..."}
                 required
                 small
+                disabled={customersLoading || !!customersError}
               />
               <div className="contact-info-modern">
                 <div>{invoice.customer_email}</div>
                 <div>{invoice.customer_phone}</div>
               </div>
+
+              {/* Customer Balance Information */}
+              {invoice.customer_id && (
+                <div className="customer-balance-info">
+                  <div className="balance-info-row">
+                    <span className="balance-label">Current Balance:</span>
+                    <span className={`balance-value ${invoice.customer_current_balance > 0 ? 'balance-positive' : 'balance-zero'}`}>
+                      ${Math.abs(invoice.customer_current_balance || 0).toFixed(2)}
+                      {invoice.customer_current_balance > 0 && <span className="balance-indicator">(Due)</span>}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Invoice Details - 25% */}
@@ -1004,6 +1236,191 @@ export default function SalesInvoicePage() {
               />
             </div>
           </div>
+        </div>
+
+        {/* Payment Section */}
+        <div className="payment-section-modern">
+          <div className="payment-header">
+            <h3 className="payment-title">
+              <DollarSign size={20} />
+              Payment Information
+            </h3>
+            {!invoiceId ? (
+              <label className="payment-checkbox">
+                <input
+                  type="checkbox"
+                  checked={invoice.payment.record_payment}
+                  onChange={(e) => setInvoice({
+                    ...invoice,
+                    payment: {
+                      ...invoice.payment,
+                      record_payment: e.target.checked,
+                      payment_amount: e.target.checked ? calculateTotal() : invoice.payment.payment_amount
+                    }
+                  })}
+                />
+                <span>Record payment for this invoice</span>
+              </label>
+            ) : (
+              <div className="payment-summary-header">
+                <span className="payment-summary-item">
+                  Total: <strong>${(invoice.total_amount || 0).toFixed(2)}</strong>
+                </span>
+                <span className="payment-summary-item">
+                  Paid: <strong className="text-green">${(invoice.paid_amount || 0).toFixed(2)}</strong>
+                </span>
+                <span className="payment-summary-item">
+                  Balance: <strong className={invoice.balance_amount > 0 ? 'text-red' : 'text-green'}>
+                    ${(invoice.balance_amount || 0).toFixed(2)}
+                  </strong>
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Existing Payments - Show when editing invoice */}
+          {invoiceId && existingPayments.length > 0 && (
+            <div className="existing-payments">
+              <h4 className="existing-payments-title">
+                <CreditCard size={16} />
+                Payment History
+              </h4>
+              <table className="payments-table">
+                <thead>
+                  <tr>
+                    <th>Payment No</th>
+                    <th>Date</th>
+                    <th>Method</th>
+                    <th>Reference</th>
+                    <th className="text-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {existingPayments.map(payment => (
+                    <tr key={payment.id}>
+                      <td>{payment.payment_no}</td>
+                      <td>{new Date(payment.payment_date).toLocaleDateString()}</td>
+                      <td>{payment.payment_method}</td>
+                      <td>{payment.reference_no || '-'}</td>
+                      <td className="text-right">${parseFloat(payment.amount).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* No payments message for existing invoice */}
+          {invoiceId && existingPayments.length === 0 && !showNewPaymentForm && (
+            <div className="no-payments-message">
+              <p>No payments recorded for this invoice.</p>
+            </div>
+          )}
+
+          {/* Add New Payment Button for existing invoice with balance */}
+          {invoiceId && invoice.balance_amount > 0 && !showNewPaymentForm && (
+            <div className="add-payment-btn-container">
+              <Button
+                variant="primary"
+                onClick={() => setShowNewPaymentForm(true)}
+              >
+                <Plus size={16} />
+                Record Payment
+              </Button>
+            </div>
+          )}
+
+          {/* New Payment Form - For new invoices OR when adding payment to existing */}
+          {(!invoiceId && invoice.payment.record_payment) || (invoiceId && showNewPaymentForm) ? (
+            <div className="payment-fields">
+              <div className="payment-row">
+                <FormInput
+                  label="Payment Date"
+                  name="payment_date"
+                  type="date"
+                  value={invoice.payment.payment_date}
+                  onChange={(e) => setInvoice({
+                    ...invoice,
+                    payment: { ...invoice.payment, payment_date: e.target.value }
+                  })}
+                />
+                <FormInput
+                  label="Payment Amount"
+                  name="payment_amount"
+                  type="number"
+                  value={invoice.payment.payment_amount}
+                  onChange={(e) => setInvoice({
+                    ...invoice,
+                    payment: { ...invoice.payment, payment_amount: parseFloat(e.target.value) || 0 }
+                  })}
+                  step="0.01"
+                  max={invoiceId ? invoice.balance_amount : undefined}
+                />
+              </div>
+              <div className="payment-row">
+                <FormInput
+                  label="Payment Method"
+                  name="payment_method"
+                  type="select"
+                  value={invoice.payment.payment_method}
+                  onChange={(e) => setInvoice({
+                    ...invoice,
+                    payment: { ...invoice.payment, payment_method: e.target.value }
+                  })}
+                  options={[
+                    { value: 'Cash', label: 'Cash' },
+                    { value: 'Check', label: 'Check' },
+                    { value: 'Bank Transfer', label: 'Bank Transfer' },
+                    { value: 'Credit Card', label: 'Credit Card' },
+                    { value: 'Online Payment', label: 'Online Payment' }
+                  ]}
+                />
+                <FormInput
+                  label="Reference No"
+                  name="reference_no"
+                  type="text"
+                  value={invoice.payment.reference_no}
+                  onChange={(e) => setInvoice({
+                    ...invoice,
+                    payment: { ...invoice.payment, reference_no: e.target.value }
+                  })}
+                  placeholder="Check number, transaction ID, etc."
+                />
+              </div>
+              <div className="payment-row">
+                <FormInput
+                  label="Payment Notes"
+                  name="payment_notes"
+                  type="textarea"
+                  value={invoice.payment.payment_notes}
+                  onChange={(e) => setInvoice({
+                    ...invoice,
+                    payment: { ...invoice.payment, payment_notes: e.target.value }
+                  })}
+                  placeholder="Optional payment notes..."
+                  rows={2}
+                />
+              </div>
+              {/* Action buttons for existing invoice payment form */}
+              {invoiceId && showNewPaymentForm && (
+                <div className="payment-actions">
+                  <Button
+                    variant="secondary"
+                    onClick={() => setShowNewPaymentForm(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={handleRecordPayment}
+                    loading={paymentMutation.isPending}
+                  >
+                    Save Payment
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : null}
         </div>
 
         {/* Footer */}

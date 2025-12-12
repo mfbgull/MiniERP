@@ -15,6 +15,10 @@ import BOMPage from './pages/bom/BOMPage';
 import ProductionPage from './pages/production/ProductionPage';
 import SalesPage from './pages/sales/SalesPage';
 import SalesInvoicePage from './pages/sales/SalesInvoicePage';
+import CustomersPage from './pages/customers/CustomersPage';
+import CustomerDetailPage from './pages/customers/CustomerDetailPage';
+import CustomerStatement from './pages/customers/CustomerStatement';
+import ARReportsPage from './pages/reports/ARReportsPage';
 import SettingsPage from './pages/SettingsPage';
 import Sidebar from './components/layout/Sidebar';
 
@@ -64,6 +68,10 @@ function AppLayout() {
               <Route path="/purchases" element={<PurchasesPage />} />
               <Route path="/bom" element={<BOMPage />} />
               <Route path="/production" element={<ProductionPage />} />
+              <Route path="/customers" element={<CustomersPage />} />
+              <Route path="/customers/:id" element={<CustomerDetailPage />} />
+              <Route path="/customers/:id/statement" element={<CustomerStatement />} />
+              <Route path="/reports/accounts-receivable" element={<ARReportsPage />} />
               <Route path="/sales" element={<SalesPage />} />
               <Route path="/sales/invoice" element={<SalesInvoicePage />} />
               <Route path="/sales/invoice/:invoiceId" element={<SalesInvoicePage />} />
@@ -104,7 +112,7 @@ function AppRoutesOuter() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
           <AppRoutesOuter />
           <Toaster

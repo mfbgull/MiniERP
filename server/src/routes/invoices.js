@@ -12,6 +12,9 @@ router.get('/', invoiceController.getInvoices);
 // Get a specific invoice
 router.get('/:id', invoiceController.getInvoice);
 
+// Get payments for a specific invoice
+router.get('/:id/payments', invoiceController.getInvoicePayments);
+
 // Create a new invoice
 router.post('/', invoiceController.createInvoice);
 
