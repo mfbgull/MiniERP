@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Printer, Download, Send, Plus, Trash2, Hash, Edit2, DollarSign, CreditCard } from 'lucide-react';
+import { Printer, Download, Send, Plus, Trash2, Hash, Edit2, DollarSign, CreditCard, Eye } from 'lucide-react';
 import api from '../../utils/api';
 import Button from '../../components/common/Button';
 import FormInput from '../../components/common/FormInput';
@@ -919,14 +919,15 @@ export default function SalesInvoicePage() {
               <span>View Customer</span>
             </button>
           )}
-          <button className="action-btn-secondary">
-            <Download className="action-icon" />
-            PDF
-          </button>
-          <button className="action-btn-secondary">
-            <Printer className="action-icon" />
-            Print
-          </button>
+          {invoiceId && (
+            <button
+              className="action-btn-secondary"
+              onClick={() => navigate(`/sales/invoice/${invoiceId}/view`)}
+            >
+              <Eye className="action-icon" />
+              <span>Preview</span>
+            </button>
+          )}
           <Button variant="primary" onClick={handleSubmit} loading={mutation.isPending}>
             <Send className="action-icon" />
             {invoiceId ? 'Update' : 'Create'} Invoice

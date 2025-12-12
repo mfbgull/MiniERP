@@ -741,11 +741,18 @@ function InvoicesTab({ invoices, loading, onViewInvoice, onDeleteInvoice }) {
     {
       headerName: 'Actions',
       field: 'actions',
-      width: 100,
+      width: 120,
       sortable: false,
       filter: false,
       cellRenderer: (params) => (
         <div className="action-buttons">
+          <button
+            className="action-btn view-btn"
+            onClick={() => window.location.href = `/sales/invoice/${params.data.id}/view`}
+            title="View Invoice"
+          >
+            <Eye size={14} />
+          </button>
           <button
             className="action-btn edit-btn"
             onClick={() => onViewInvoice(params.data.id)}

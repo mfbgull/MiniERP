@@ -1,0 +1,160 @@
+/* Invoice View Page */
+.invoice-view-page {
+  min-height: 100vh;
+  background: #f1f5f9;
+}
+
+/* Toolbar */
+.invoice-view-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.toolbar-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.toolbar-right button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Invoice Preview Container */
+.invoice-view-container {
+  padding: 40px 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.invoice-preview-wrapper {
+  background: white;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Loading State */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 16px;
+}
+
+.loading-container .spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-container p {
+  color: #64748b;
+  font-size: 0.9375rem;
+}
+
+/* Error State */
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 12px;
+  text-align: center;
+  padding: 40px;
+}
+
+.error-container h2 {
+  margin: 0;
+  color: #1e293b;
+}
+
+.error-container p {
+  color: #64748b;
+  margin: 0 0 16px 0;
+}
+
+/* Print Styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .invoice-view-page {
+    background: white;
+    min-height: auto;
+  }
+
+  .invoice-view-container {
+    padding: 0;
+  }
+
+  .invoice-preview-wrapper {
+    box-shadow: none;
+    border-radius: 0;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .invoice-view-toolbar {
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .toolbar-left,
+  .toolbar-right {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-title {
+    order: -1;
+    width: 100%;
+    text-align: center;
+  }
+
+  .invoice-view-container {
+    padding: 16px;
+  }
+
+  .toolbar-right button span {
+    display: none;
+  }
+}

@@ -748,6 +748,16 @@
   transition: background-color 0.2s, color 0.2s;
 }
 
+.action-btn.view-btn {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.action-btn.view-btn:hover {
+  background: #16a34a;
+  color: white;
+}
+
 .action-btn.edit-btn {
   background: #e0f2fe;
   color: #0284c7;

@@ -15,6 +15,7 @@ import BOMPage from './pages/bom/BOMPage';
 import ProductionPage from './pages/production/ProductionPage';
 import SalesPage from './pages/sales/SalesPage';
 import SalesInvoicePage from './pages/sales/SalesInvoicePage';
+import InvoiceViewPage from './pages/sales/InvoiceViewPage';
 import CustomersPage from './pages/customers/CustomersPage';
 import CustomerDetailPage from './pages/customers/CustomerDetailPage';
 import CustomerStatement from './pages/customers/CustomerStatement';
@@ -75,6 +76,7 @@ function AppLayout() {
               <Route path="/sales" element={<SalesPage />} />
               <Route path="/sales/invoice" element={<SalesInvoicePage />} />
               <Route path="/sales/invoice/:invoiceId" element={<SalesInvoicePage />} />
+              <Route path="/sales/invoice/:invoiceId/view" element={<InvoiceViewPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>        </div>
